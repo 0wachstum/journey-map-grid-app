@@ -213,7 +213,7 @@ function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear })
 export default function App(){
   const [selectedStages, setSelectedStages] = useState([...ALL_STAGES])
   const [selectedStakeholders, setSelectedStakeholders] = useState([...ALL_STAKEHOLDERS])
-
+  const [condensed, setCondensed] = useState(true); // default to Condensed
   const toggle = (setArr) => (val) => {
     setArr(curr => curr.includes(val) ? curr.filter(x => x !== val) : [...curr, val])
   }
@@ -240,7 +240,20 @@ export default function App(){
   return (
     <div className="container">
       <h1 className="h1">Customer Journey Grid</h1>
-
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
+      <button
+    className={`btn ${condensed ? 'active' : ''}`}
+    aria-pressed={condensed}
+    onClick={()=>setCondensed(true)}
+    title="Compact cards (show only KPI + quick peek)"
+      >Condensed</button>
+    <button
+    className={`btn ${!condensed ? 'active' : ''}`}
+    aria-pressed={!condensed}
+    onClick={()=>setCondensed(false)}
+    title="Full cards (open all details)"
+    >Expanded</button>
+</div>
       <div className="controls">
         <ToggleRail
           label="Journey Stages"
@@ -282,8 +295,10 @@ export default function App(){
                       <div className="card">
                         <h3>{row.stakeholder} @ {row.stage}</h3>
                         <div className="kpi">KPI: {row.kpi}</div>
-                        <details>
-                          <summary>Details</summary>
+                        {/* Condensed: keep details collapsed (peek), Expanded: open fully */}
+                          <details open={!condensed} className={condensed ? '' : 'opened'}>
+                          <summary className="summary-line">Details</summary>
+                            
                           <p className="meta"><strong>Motivation:</strong> {row.motivation}</p>
                           <p className="meta"><strong>Goal:</strong> {row.goal}</p>
                           <p className="meta"><strong>Support:</strong> {row.support}</p>
