@@ -99,7 +99,7 @@ export default function App() {
       .catch(e => setError(e.message))
   }, [])
 
-  // ---- Visibility / grid helpers ----
+  // Visible rows under current filters
   const visible = useMemo(() => {
     return data.filter(d =>
       selectedStages.includes(d.stage) &&
@@ -107,6 +107,7 @@ export default function App() {
     )
   }, [data, selectedStages, selectedStakeholders])
 
+  // Which stages/stakeholders actually have any data under current filters
   const activeStages = useMemo(() => {
     return selectedStages.filter(st =>
       data.some(d => d.stage === st && selectedStakeholders.includes(d.stakeholder))
@@ -119,21 +120,26 @@ export default function App() {
     )
   }, [data, selectedStages, selectedStakeholders])
 
-  // stage → stakeholder → row (single declaration)
+  // Logical grid behavior:
+  // if only one row OR only one column → omit empties on that axis
+  const effectiveStages = activeStages.length === 1 ? activeStages : selectedStages
+  const effectiveStakeholders = activeStakeholders.length === 1 ? activeStakeholders : selectedStakeholders
+
+  // stage → stakeholder → row
   const byStage = useMemo(() => {
     const m = new Map()
-    for (const st of activeStages) m.set(st, {})
+    for (const st of effectiveStages) m.set(st, {})
     for (const row of visible) {
-      if (!activeStages.includes(row.stage)) continue
-      if (!activeStakeholders.includes(row.stakeholder)) continue
+      if (!effectiveStages.includes(row.stage)) continue
+      if (!effectiveStakeholders.includes(row.stakeholder)) continue
       if (!m.has(row.stage)) m.set(row.stage, {})
       m.get(row.stage)[row.stakeholder] = row
     }
     return m
-  }, [visible, activeStages, activeStakeholders])
+  }, [visible, effectiveStages, effectiveStakeholders])
 
   const gridStyle = {
-    gridTemplateColumns: activeStakeholders.map(() => 'minmax(280px, 1fr)').join(' ')
+    gridTemplateColumns: effectiveStakeholders.map(() => 'minmax(280px, 1fr)').join(' ')
   }
 
   const toggle = (setArr) => (val) =>
@@ -173,37 +179,45 @@ export default function App() {
 
       <div className="grid-wrap">
         <div className="grid" style={gridStyle}>
-          {activeStages.map(stage => {
+          {effectiveStages.map(stage => {
             const rowMap = byStage.get(stage) || {}
-            if (!Object.keys(rowMap).length) return null
+            const stageHasAny = Object.keys(rowMap).length > 0
+            if (!stageHasAny && effectiveStages.length === 1) return null // single empty row → skip
+
             return (
               <div key={stage} className="row" style={{ display:'contents' }}>
-                {activeStakeholders.map(sh => {
+                {effectiveStakeholders.map(sh => {
                   const row = rowMap[sh]
-                  if (!row) return null
+                  if (!row && effectiveStakeholders.length === 1) return null // single empty column → skip
+
                   return (
                     <div key={`${stage}-${sh}`} className="card-cell">
-                      <div className="card">
-                        <h3>{row.stakeholder} @ {row.stage}</h3>
-                        {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
-                        <details open={!condensed} className={condensed ? '' : 'opened'}>
-                          <summary className="summary-line"></summary>
-                          {row.motivation && (<p className="meta"><strong>Motivation:</strong> {row.motivation}</p>)}
-                          {row.goal && (<p className="meta"><strong>Goal:</strong> {row.goal}</p>)}
-                          {row.support && (<p className="meta"><strong>Support:</strong> {row.support}</p>)}
-                          {row.plays?.length > 0 && (
-                            <div className="meta">
-                              <strong>Plays:</strong>
-                              <ul className="list">{row.plays.map((p,i)=><li key={i}>{p}</li>)}</ul>
-                            </div>
-                          )}
-                          {row.touchpoints?.length > 0 && (
-                            <div className="chips" style={{ marginTop: 6 }}>
-                              {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
-                            </div>
-                          )}
-                        </details>
-                      </div>
+                      {row ? (
+                        <div className="card">
+                          <h3>{row.stakeholder} @ {row.stage}</h3>
+                          {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
+                          <details open={!condensed} className={condensed ? '' : 'opened'}>
+                            <summary className="summary-line"></summary>
+                            {row.motivation && (<p className="meta"><strong>Motivation:</strong> {row.motivation}</p>)}
+                            {row.goal && (<p className="meta"><strong>Goal:</strong> {row.goal}</p>)}
+                            {row.support && (<p className="meta"><strong>Support:</strong> {row.support}</p>)}
+                            {row.plays?.length > 0 && (
+                              <div className="meta">
+                                <strong>Plays:</strong>
+                                <ul className="list">{row.plays.map((p,i)=><li key={i}>{p}</li>)}</ul>
+                              </div>
+                            )}
+                            {row.touchpoints?.length > 0 && (
+                              <div className="chips" style={{ marginTop: 6 }}>
+                                {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
+                              </div>
+                            )}
+                          </details>
+                        </div>
+                      ) : (
+                        // preserve grid alignment only when multi-row/column
+                        <div className="empty">—</div>
+                      )}
                     </div>
                   )
                 })}
