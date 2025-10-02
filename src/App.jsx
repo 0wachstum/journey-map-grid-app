@@ -145,9 +145,9 @@ const byStage = useMemo(() => {
     return m
   }, [visible, selectedStages])
 
-  const gridStyle = {
-    gridTemplateColumns: selectedStakeholders.map(() => 'minmax(280px, 1fr)').join(' ')
-  }
+const gridStyle = {
+  gridTemplateColumns: activeStakeholders.map(() => 'minmax(280px, 1fr)').join(' ')
+}
 
   const toggle = (setArr) => (val) =>
     setArr(curr => curr.includes(val) ? curr.filter(x => x !== val) : [...curr, val])
@@ -185,49 +185,46 @@ const byStage = useMemo(() => {
       </div>
 
       <div className="grid-wrap">
-        <div className="grid" style={gridStyle}>
-          {/* No header row; no stage column */}
-          {selectedStages.map(stage => {
-            const rowMap = byStage.get(stage) || {}
-            return (
-              <div key={stage} className="row" style={{ display:'contents' }}>
-                {selectedStakeholders.map(sh => {
-                  const row = rowMap[sh]
-                  if (!row) return <div key={stage + sh} className="card-cell"><div className="empty">—</div></div>
-                  return (
-                    <div key={stage + sh} className="card-cell">
-<div className="card">
-  <h3>{row.stakeholder} @ {row.stage}</h3>
-  {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
-
-  <details open={!condensed} className={condensed ? '' : 'opened'}>
-    <summary className="summary-line"></summary>
-
-    {row.motivation && (
-      <p className="meta"><strong>Motivation:</strong> {row.motivation}</p>
-    )}
-    {row.goal && (
-      <p className="meta"><strong>Goal:</strong> {row.goal}</p>
-    )}
-    {row.support && (
-      <p className="meta"><strong>Support:</strong> {row.support}</p>
-    )}
-
-    {row.plays && row.plays.length > 0 && (
-      <div className="meta">
-        <strong>Plays:</strong>
-        <ul className="list">
-          {row.plays.map((p,i)=><li key={i}>{p}</li>)}
-        </ul>
+        
+<div className="grid" style={gridStyle}>
+  {activeStages.map(stage => {
+    const rowMap = byStage.get(stage) || {}
+    // If a stage ends up empty after pruning, skip it entirely
+    if (!Object.keys(rowMap).length) return null
+    return (
+      <div key={stage} className="row" style={{ display:'contents' }}>
+        {activeStakeholders.map(sh => {
+          const row = rowMap[sh]
+          if (!row) return null  // ⬅️ no dash, no empty cell
+          return (
+            <div key={stage + sh} className="card-cell">
+              <div className="card">
+                <h3>{row.stakeholder} @ {row.stage}</h3>
+                {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
+                <details open={!condensed} className={condensed ? '' : 'opened'}>
+                  <summary className="summary-line"></summary>
+                  {row.motivation && (<p className="meta"><strong>Motivation:</strong> {row.motivation}</p>)}
+                  {row.goal && (<p className="meta"><strong>Goal:</strong> {row.goal}</p>)}
+                  {row.support && (<p className="meta"><strong>Support:</strong> {row.support}</p>)}
+                  {row.plays?.length > 0 && (
+                    <div className="meta">
+                      <strong>Plays:</strong>
+                      <ul className="list">{row.plays.map((p,i)=><li key={i}>{p}</li>)}</ul>
+                    </div>
+                  )}
+                  {row.touchpoints?.length > 0 && (
+                    <div className="chips" style={{ marginTop: 6 }}>
+                      {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
+                    </div>
+                  )}
+                </details>
+              </div>
+            </div>
+          )
+        })}
       </div>
-    )}
-
-    {row.touchpoints && row.touchpoints.length > 0 && (
-      <div className="chips" style={{ marginTop: 6 }}>
-        {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
-      </div>
-    )}
-  </details>
+    )
+  })}
 </div>
 
                     </div>
