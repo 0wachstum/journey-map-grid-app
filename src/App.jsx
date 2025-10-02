@@ -289,7 +289,7 @@ export default function App(){
                         <div className="kpi">KPI: {row.kpi}</div>
                         {/* Condensed: keep details collapsed (peek), Expanded: open fully */}
                           <details open={!condensed} className={condensed ? '' : 'opened'}>
-                          <summary className="summary-line">Details</summary>
+                          <summary className="summary-line"><strong>...</strong></summary>
                             
                           <p className="meta"><strong>Motivation:</strong> {row.motivation}</p>
                           <p className="meta"><strong>Goal:</strong> {row.goal}</p>
