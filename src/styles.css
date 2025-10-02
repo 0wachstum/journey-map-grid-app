@@ -179,3 +179,50 @@ details[open] > .summary-line::after {
   border-color: var(--border) !important;
   color: var(--muted) !important;
 }
+
+/* ======== DEBUG: reveal who is white ======== */
+.grid-wrap      { outline: 2px solid rgba(255,0,0,.3); }
+.grid           { outline: 2px solid rgba(0,255,0,.3); }
+.card-cell      { outline: 2px solid rgba(0,128,255,.3); }
+.card           { outline: 2px solid rgba(255,128,0,.3); }
+
+/* ======== KILL ALL LIGHT BACKGROUNDS IN/AROUND CARDS ======== */
+.card,
+.card *,
+.card-cell,
+.grid,
+.grid-wrap,
+.card details,
+.card details[open],
+.card summary,
+.card .summary-line {
+  background: transparent !important;
+}
+
+/* Now explicitly set the card panel color */
+.card {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  color: var(--text) !important;
+}
+
+/* Chips: enforce dark look */
+.card .chip {
+  background: var(--chip) !important;
+  border-color: var(--border) !important;
+  color: var(--muted) !important;
+}
+
+/* Buttons: no accidental white fill */
+.btn { background: transparent !important; }
+.btn.active { background: var(--accent) !important; color: #fff !important; }
+
+/* Details/summary defaults can be light in some UAs */
+details, summary { background: transparent !important; border: 0 !important; }
+
+/* Safety: remove any UA/table defaults that might sneak in */
+table, th, td { background: transparent !important; }
+
+/* Optional: if you still see white flashes, set the page container */
+body, .container { background: transparent !important; }
