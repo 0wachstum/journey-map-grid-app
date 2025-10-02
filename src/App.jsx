@@ -223,7 +223,7 @@ export default function App(){
   }, [selectedStages, selectedStakeholders])
 
   const gridStyle = {
-    gridTemplateColumns: `200px ${selectedStakeholders.map(()=> 'minmax(280px, 1fr)').join(' ')}`
+    gridTemplateColumns: selectedStakeholders.map(() => 'minmax(280px, 1fr)').join(' ')
   }
 
   // map by stage + stakeholder for grid lookup
