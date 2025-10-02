@@ -106,6 +106,34 @@ export default function App() {
     return data.filter(d => selectedStages.includes(d.stage) && selectedStakeholders.includes(d.stakeholder))
   }, [data, selectedStages, selectedStakeholders])
 
+  // Only show stages that actually have at least one row for any selected stakeholder
+const activeStages = useMemo(() => {
+  return selectedStages.filter(st =>
+    data.some(d => d.stage === st && selectedStakeholders.includes(d.stakeholder))
+  )
+}, [data, selectedStages, selectedStakeholders])
+
+// Only show stakeholders that actually have at least one row in any selected stage
+const activeStakeholders = useMemo(() => {
+  return selectedStakeholders.filter(sh =>
+    data.some(d => d.stakeholder === sh && selectedStages.includes(d.stage))
+  )
+}, [data, selectedStages, selectedStakeholders])
+
+// Fast lookup: stage -> stakeholder -> row
+const byStage = useMemo(() => {
+  const m = new Map()
+  for (const st of activeStages) m.set(st, {})
+  for (const row of data) {
+    if (!activeStages.includes(row.stage)) continue
+    if (!activeStakeholders.includes(row.stakeholder)) continue
+    if (!m.has(row.stage)) m.set(row.stage, {})
+    m.get(row.stage)[row.stakeholder] = row
+  }
+  return m
+}, [data, activeStages, activeStakeholders])
+
+  
   // stage → stakeholder → row
   const byStage = useMemo(() => {
     const m = new Map()
