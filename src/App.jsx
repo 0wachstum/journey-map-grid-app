@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 
 const ALL_STAGES = ['Potential','Awareness','Research','Pitching','Deployment','Onboarding','Retention']
 const ALL_STAKEHOLDERS = ['User(s)','Champion','Exec / Approver','Team Lead (Systems/QA)','QA','Peers/Refs']
-const CSV_URL = https://schlafenderhasegmbh-my.sharepoint.com/:x:/g/personal/alexander_stamm_sh-p_de/EQALQ6iYDwFPmpvw_zTIDokBftUFr-RxQjiEb2zs1c64kQ?e=1IwrH2?download=1;
+const CSV_URL = 'https://schlafenderhasegmbh-my.sharepoint.com/:x:/g/personal/alexander_stamm_sh-p_de/EQALQ6iYDwFPmpvw_zTIDokBftUFr-RxQjiEb2zs1c64kQ?e=1IwrH2?download=1';
 
 // RFC-4180-ish CSV parser: handles commas, quotes, and newlines in quoted fields.
 // Returns array of row arrays (no headers applied yet).
