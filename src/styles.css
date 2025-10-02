@@ -66,3 +66,66 @@ details[open] > .summary-line::after {
 .empty { border: 1px dashed var(--border); border-radius: 12px; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { background: var(--chip); border: 1px solid var(--border); padding: 2px 8px; border-radius: 999px; font-size: 12px; color: var(--muted); }
+
+/* --- Cleaner cards when some fields are missing --- */
+.card {
+  padding: 14px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  background: #fff;
+}
+
+/* Stack spacing: only add space between rendered siblings */
+.card > * + * { margin-top: 8px; }
+
+/* KPI smaller + subtle */
+.card .kpi {
+  font-size: 13px;
+  opacity: .8;
+}
+
+/* Meta paragraphs – compact, readable */
+.card .meta {
+  margin: 6px 0 0;
+  line-height: 1.35;
+}
+.card .meta strong {
+  font-weight: 600;
+}
+
+/* Lists: no big default gaps */
+.card .list {
+  margin: 6px 0 0 16px;
+  padding: 0;
+}
+.card .list li {
+  margin: 4px 0;
+}
+
+/* Chips area only when needed; tight wrapping */
+.card .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.card .chip {
+  display: inline-block;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+/* --- Details arrow (no divider line) --- */
+.card details {
+  border: 0;
+  padding: 0;
+}
+
+/* Hide default triangle */
+.card summary::-webkit-details-marker { display: none; }
+.card summary {
+
+
