@@ -275,18 +275,10 @@ export default function App(){
 
       <div className="grid-wrap">
         <div className="grid" style={gridStyle}>
-          <div className="header">
-            <div className="header-cell stage-cell">Stage</div>
-            {selectedStakeholders.map(sh => (
-              <div key={sh} className="header-cell">{sh}</div>
-            ))}
-          </div>
-
           {selectedStages.map(stage => {
             const rowMap = byStage.get(stage) || {}
             return (
               <div key={stage} className="row">
-                <div className="stage-cell">{stage}</div>
                 {selectedStakeholders.map(sh => {
                   const row = rowMap[sh]
                   if (!row) return <div key={sh} className="card-cell"><div className="empty">—</div></div>
