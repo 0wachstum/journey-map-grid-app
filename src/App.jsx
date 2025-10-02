@@ -1,3 +1,5 @@
+// app.jsx
+
 import { useEffect, useMemo, useState } from 'react'
 
 // Google Sheets “Publish to web” CSV
@@ -30,12 +32,14 @@ function parseCSVRaw(text) {
   row.push(cell); rows.push(row)
   return rows
 }
+
 function parseCSV(text) {
   const matrix = parseCSVRaw(text).filter(r => r.length && !(r.length === 1 && r[0] === ''))
   if (!matrix.length) return []
   const headers = matrix[0].map(h => (h ?? '').trim())
   const idx = (name) => headers.indexOf(name)
   const semi = (v) => (v ? String(v).split(';').map(s => s.trim()).filter(Boolean) : [])
+
   return matrix.slice(1).map(cells => {
     if (cells.length < headers.length) cells = cells.concat(Array(headers.length - cells.length).fill(''))
     return {
@@ -47,6 +51,15 @@ function parseCSV(text) {
       plays:       semi(cells[idx('Plays')]),
       touchpoints: semi(cells[idx('Touchpoints')]),
       kpi:         (cells[idx('KPI')] ?? '').trim(),
+
+      // NEW (optional) detail fields — safe if missing
+      emotions:      semi(idx('Emotions')      >= 0 ? cells[idx('Emotions')]      : ''),
+      quotes:        semi(idx('Quotes')        >= 0 ? cells[idx('Quotes')]        : ''),
+      roles:         semi(idx('Roles')         >= 0 ? cells[idx('Roles')]         : ''),
+      influences:    semi(idx('Influences')    >= 0 ? cells[idx('Influences')]    : ''),
+      barriers:      semi(idx('Barriers')      >= 0 ? cells[idx('Barriers')]      : ''),
+      evidence:      semi(idx('Evidence')      >= 0 ? cells[idx('Evidence')]      : ''),
+      opportunities: semi(idx('Opportunities') >= 0 ? cells[idx('Opportunities')] : ''),
     }
   })
 }
@@ -198,20 +211,89 @@ export default function App() {
                           {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
                           <details open={!condensed} className={condensed ? '' : 'opened'}>
                             <summary className="summary-line"></summary>
+
                             {row.motivation && (<p className="meta"><strong>Motivation:</strong> {row.motivation}</p>)}
                             {row.goal && (<p className="meta"><strong>Goal:</strong> {row.goal}</p>)}
                             {row.support && (<p className="meta"><strong>Support:</strong> {row.support}</p>)}
+
                             {row.plays?.length > 0 && (
                               <div className="meta">
                                 <strong>Plays:</strong>
                                 <ul className="list">{row.plays.map((p,i)=><li key={i}>{p}</li>)}</ul>
                               </div>
                             )}
+
                             {row.touchpoints?.length > 0 && (
                               <div className="chips" style={{ marginTop: 6 }}>
                                 {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
                               </div>
                             )}
+
+                            {/* --- NEW: Full-detail sections (optional columns) --- */}
+                            {row.emotions?.length > 0 && (
+                              <div className="meta">
+                                <strong>Emotions:</strong>
+                                <div className="chips" style={{ marginTop: 6 }}>
+                                  {row.emotions.map((e,i)=>(<span key={i} className="chip">{e}</span>))}
+                                </div>
+                              </div>
+                            )}
+
+                            {row.quotes?.length > 0 && (
+                              <div className="meta">
+                                <strong>Quotes:</strong>
+                                <ul className="list">
+                                  {row.quotes.map((q,i)=><li key={i}>&ldquo;{q}&rdquo;</li>)}
+                                </ul>
+                              </div>
+                            )}
+
+                            {row.roles?.length > 0 && (
+                              <div className="meta">
+                                <strong>Roles / Stakeholders:</strong>
+                                <div className="chips" style={{ marginTop: 6 }}>
+                                  {row.roles.map((r,i)=>(<span key={i} className="chip">{r}</span>))}
+                                </div>
+                              </div>
+                            )}
+
+                            {row.influences?.length > 0 && (
+                              <div className="meta">
+                                <strong>Influences:</strong>
+                                <ul className="list">
+                                  {row.influences.map((inf,i)=><li key={i}>{inf}</li>)}
+                                </ul>
+                              </div>
+                            )}
+
+                            {row.barriers?.length > 0 && (
+                              <div className="meta">
+                                <strong>Barriers / Risks:</strong>
+                                <ul className="list">
+                                  {row.barriers.map((b,i)=><li key={i}>{b}</li>)}
+                                </ul>
+                              </div>
+                            )}
+
+                            {row.evidence?.length > 0 && (
+                              <div className="meta">
+                                <strong>Evidence / Proof Needed:</strong>
+                                <ul className="list">
+                                  {row.evidence.map((ev,i)=><li key={i}>{ev}</li>)}
+                                </ul>
+                              </div>
+                            )}
+
+                            {row.opportunities?.length > 0 && (
+                              <div className="meta">
+                                <strong>Opportunities (How we can win):</strong>
+                                <ul className="list">
+                                  {row.opportunities.map((op,i)=><li key={i}>{op}</li>)}
+                                </ul>
+                              </div>
+                            )}
+                            {/* --- /NEW --- */}
+
                           </details>
                         </div>
                       ) : (
