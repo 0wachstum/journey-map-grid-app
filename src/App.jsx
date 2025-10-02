@@ -247,7 +247,17 @@ export default function App() {
     return list
   }, [data])
 
-  const allStakeholders = useMemo(() => {
-    const seen = new Set()
-    const rows = [...data]
-    rows.sort((a, b) => (a.stakeholderOrder - b.stakeholderOrder) || 0
+const allStakeholders = useMemo(() => {
+  const seen = new Set()
+  const rows = [...data]
+  rows.sort((a, b) => (a.stakeholderOrder - b.stakeholderOrder) || 0)
+  const list = []
+  for (const r of rows) {
+    if (!r.stakeholder) continue
+    if (!seen.has(r.stakeholder)) {
+      seen.add(r.stakeholder)
+      list.push(r.stakeholder)
+    }
+  }
+  return list
+}, [data])
