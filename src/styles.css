@@ -8,6 +8,7 @@
   --accent: #2f81f7;
   --chip: #1b2a44;
 }
+
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 body {
@@ -16,12 +17,14 @@ body {
   color: var(--text);
   background: linear-gradient(180deg, #0b0f14 0%, #0d1524 100%);
 }
+
 .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
 .h1 { font-size: 28px; font-weight: 800; margin: 0 0 16px; }
 .controls {
   display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px;
   background: rgba(16,22,33,.5); border: 1px solid var(--border); border-radius: 12px; padding: 12px;
 }
+
 .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 4px 0 6px; }
 .rail { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 6px 0; }
 .btn { border: 1px solid var(--border); background: transparent; color: var(--text); padding: 8px 14px; border-radius: 999px; cursor: pointer; }
@@ -41,6 +44,25 @@ body {
 .meta { color: var(--muted); font-size: 12px; }
 details summary { cursor: pointer; color: var(--text); }
 details { margin-top: 4px; }
+
+/* Hide the "Details" summary line when globally expanded, so it reads like a full card */
+details.opened > .summary-line { 
+  display: none; 
+}
+
+/* Optional: make the summary line subtler in condensed mode */
+.summary-line {
+  color: var(--muted);
+  font-weight: 600;
+  list-style: none;
+}
+
+/* Minor: when details is closed, add a faint divider to hint at more content */
+details:not([open]) {
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+  margin-top: 6px;
+}
 .empty { border: 1px dashed var(--border); border-radius: 12px; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { background: var(--chip); border: 1px solid var(--border); padding: 2px 8px; border-radius: 999px; font-size: 12px; color: var(--muted); }
