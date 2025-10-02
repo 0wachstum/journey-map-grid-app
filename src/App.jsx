@@ -57,7 +57,7 @@ function parseCSV(text) {
       touchpoints: semi(get('Touchpoints')),
       kpi:         get('KPI').trim(),
 
-      // NEW (optional) detail fields — safe if missing
+      // Optional detail fields
       emotions:      semi(get('Emotions')),
       quotes:        semi(get('Quotes')),
       roles:         semi(get('Roles')),
@@ -66,12 +66,120 @@ function parseCSV(text) {
       evidence:      semi(get('Evidence')),
       opportunities: semi(get('Opportunities')),
 
-      // Optional ordering / grouping
+      // Optional override & ordering / grouping
+      highlightFields: semi(get('HighlightFields')), // e.g. plays;emotions;roles
       stageOrder:       Number(get('StageOrder') || Number.POSITIVE_INFINITY),
       stakeholderOrder: Number(get('StakeholderOrder') || Number.POSITIVE_INFINITY),
       stageGroup:       get('StageGroup').trim(),
     }
   })
+}
+
+// ---------- Field metadata ----------
+const FIELD_LABELS = {
+  motivation: 'Motivation',
+  goal: 'Goal',
+  support: 'Support',
+  plays: 'Plays',
+  touchpoints: 'Touchpoints',
+  kpi: 'KPI',
+  emotions: 'Emotions',
+  quotes: 'Quotes',
+  roles: 'Roles / Stakeholders',
+  influences: 'Influences',
+  barriers: 'Barriers / Risks',
+  evidence: 'Evidence / Proof Needed',
+  opportunities: 'Opportunities (How we can win)',
+}
+
+// fields that render as chip rows
+const CHIP_FIELDS = new Set(['touchpoints', 'emotions', 'roles'])
+// fields that render as list bullets
+const LIST_FIELDS = new Set(['plays', 'quotes', 'influences', 'barriers', 'evidence', 'opportunities'])
+// master ordered list for full view
+const FIELD_ORDER = ['motivation','goal','support','plays','touchpoints','emotions','quotes','roles','influences','barriers','evidence','opportunities']
+// evergreen highlights (KPI stays near title)
+const BASE_HIGHLIGHTS = ['motivation','touchpoints']
+// priority for auto-choosing the extra 3 highlight sections
+const HIGHLIGHT_PRIORITY = ['goal','plays','evidence','barriers','emotions','quotes','roles','influences','support','opportunities']
+
+function sectionHasContent(row, key) {
+  const v = row?.[key]
+  if (Array.isArray(v)) return v.length > 0
+  return Boolean(v && String(v).trim())
+}
+
+function normalizeKey(k) {
+  return String(k || '').toLowerCase().replace(/\s+/g,'').replace(/[^\w]/g,'')
+}
+
+function renderSection(row, key) {
+  if (!sectionHasContent(row, key)) return null
+  if (key === 'kpi') {
+    return <div className="kpi">KPI: {row.kpi}</div>
+  }
+  const label = FIELD_LABELS[key] || key
+  if (CHIP_FIELDS.has(key)) {
+    return (
+      <div className="meta">
+        <strong>{label}:</strong>
+        <div className="chips" style={{ marginTop: 6 }}>
+          {row[key].map((t, i) => (<span key={i} className="chip">{t}</span>))}
+        </div>
+      </div>
+    )
+  }
+  if (LIST_FIELDS.has(key)) {
+    return (
+      <div className="meta">
+        <strong>{label}:</strong>
+        <ul className="list">
+          {row[key].map((t, i) => (
+            <li key={i}>{key === 'quotes' ? <>“{t}”</> : t}</li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+  // default scalar paragraph
+  return <p className="meta"><strong>{label}:</strong> {row[key]}</p>
+}
+
+function computeHighlightKeys(row) {
+  // Start with evergreen
+  let highlights = [...BASE_HIGHLIGHTS]
+
+  // Optional per-row override via CSV: HighlightFields (e.g., "plays;emotions;roles")
+  const valid = new Set(FIELD_ORDER)
+  const override = (row.highlightFields || [])
+    .map(normalizeKey)
+    .map(k => {
+      // map normalized back to known keys
+      // (handles values like 'roles', 'Roles', 'roles/stakeholders')
+      for (const key of FIELD_ORDER) if (normalizeKey(key) === k) return key
+      return null
+    })
+    .filter(Boolean)
+    .filter(k => valid.has(k))
+    .filter(k => k !== 'motivation' && k !== 'touchpoints' && k !== 'kpi')
+
+  const chosen = []
+  for (const k of override) {
+    if (chosen.length >= 3) break
+    if (sectionHasContent(row, k)) chosen.push(k)
+  }
+
+  // backfill from priority if we have fewer than 3 override picks
+  if (chosen.length < 3) {
+    for (const k of HIGHLIGHT_PRIORITY) {
+      if (chosen.length >= 3) break
+      if (override.includes(k)) continue
+      if (sectionHasContent(row, k)) chosen.push(k)
+    }
+  }
+
+  highlights = highlights.concat(chosen.slice(0,3))
+  return highlights
 }
 
 // ---------- UI ----------
@@ -98,6 +206,9 @@ function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear })
 }
 
 export default function App() {
+  // NOTE: we reuse 'condensed' as the global Highlights/Full toggle
+  // condensed = true  → Highlights
+  // condensed = false → Full
   const [condensed, setCondensed] = useState(true)
   const [data, setData] = useState([])
   const [error, setError] = useState('')
@@ -113,7 +224,7 @@ export default function App() {
         const rows = parseCSV(txt)
         if (!rows.length) throw new Error('No rows parsed')
         setData(rows)
-        // Initialize selections from data (unique in first-appearance order)
+        // selections from data (unique, first-appearance order)
         setSelectedStages([...new Set(rows.map(r => r.stage))])
         setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))])
       })
@@ -139,217 +250,4 @@ export default function App() {
   const allStakeholders = useMemo(() => {
     const seen = new Set()
     const rows = [...data]
-    rows.sort((a, b) => (a.stakeholderOrder - b.stakeholderOrder) || 0)
-    const list = []
-    for (const r of rows) {
-      if (!r.stakeholder) continue
-      if (!seen.has(r.stakeholder)) {
-        seen.add(r.stakeholder)
-        list.push(r.stakeholder)
-      }
-    }
-    return list
-  }, [data])
-
-  // Visible rows under current filters
-  const visible = useMemo(() => {
-    return data.filter(d =>
-      selectedStages.includes(d.stage) &&
-      selectedStakeholders.includes(d.stakeholder)
-    )
-  }, [data, selectedStages, selectedStakeholders])
-
-  // Which stages/stakeholders actually have any data under current filters
-  const activeStages = useMemo(() => {
-    return selectedStages.filter(st =>
-      data.some(d => d.stage === st && selectedStakeholders.includes(d.stakeholder))
-    )
-  }, [data, selectedStages, selectedStakeholders])
-
-  const activeStakeholders = useMemo(() => {
-    return selectedStakeholders.filter(sh =>
-      data.some(d => d.stakeholder === sh && selectedStages.includes(d.stage))
-    )
-  }, [data, selectedStages, selectedStakeholders])
-
-  // Logical grid behavior:
-  // if only one row OR only one column → omit empties on that axis
-  const effectiveStages = activeStages.length === 1 ? activeStages : selectedStages
-  const effectiveStakeholders = activeStakeholders.length === 1 ? activeStakeholders : selectedStakeholders
-
-  // stage → stakeholder → row map
-  const byStage = useMemo(() => {
-    const m = new Map()
-    for (const st of effectiveStages) m.set(st, {})
-    for (const row of visible) {
-      if (!effectiveStages.includes(row.stage)) continue
-      if (!effectiveStakeholders.includes(row.stakeholder)) continue
-      if (!m.has(row.stage)) m.set(row.stage, {})
-      m.get(row.stage)[row.stakeholder] = row
-    }
-    return m
-  }, [visible, effectiveStages, effectiveStakeholders])
-
-  const gridStyle = {
-    gridTemplateColumns: effectiveStakeholders.map(() => 'minmax(280px, 1fr)').join(' ')
-  }
-
-  const toggle = (setArr) => (val) =>
-    setArr(curr => curr.includes(val) ? curr.filter(x => x !== val) : [...curr, val])
-
-  if (error) return <div style={{ padding: 16 }}>Error: {error}</div>
-  if (!data.length) return <div style={{ padding: 16 }}>Loading…</div>
-  if (!allStages.length || !allStakeholders.length) {
-    return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
-  }
-
-  return (
-    <div className="container">
-      <h1 className="h1">Customer Journey Grid</h1>
-
-      {/* Condensed / Expanded switch */}
-      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
-        <button className={`btn ${condensed ? 'active' : ''}`} aria-pressed={condensed} onClick={()=>setCondensed(true)}>Condensed</button>
-        <button className={`btn ${!condensed ? 'active' : ''}`} aria-pressed={!condensed} onClick={()=>setCondensed(false)}>Expanded</button>
-      </div>
-
-      <div className="controls">
-        <ToggleRail
-          label="Journey Stages"
-          values={allStages}
-          selected={selectedStages}
-          onToggle={toggle(setSelectedStages)}
-          onSelectAll={() => setSelectedStages(allStages)}
-          onClear={() => setSelectedStages([])}
-        />
-        <ToggleRail
-          label="Stakeholders"
-          values={allStakeholders}
-          selected={selectedStakeholders}
-          onToggle={toggle(setSelectedStakeholders)}
-          onSelectAll={() => setSelectedStakeholders(allStakeholders)}
-          onClear={() => setSelectedStakeholders([])}
-        />
-      </div>
-
-      <div className="grid-wrap">
-        <div className="grid" style={gridStyle}>
-          {effectiveStages.map(stage => {
-            const rowMap = byStage.get(stage) || {}
-            const stageHasAny = Object.keys(rowMap).length > 0
-            if (!stageHasAny && effectiveStages.length === 1) return null // single empty row → skip
-
-            return (
-              <div key={stage} className="row" style={{ display:'contents' }}>
-                {effectiveStakeholders.map(sh => {
-                  const row = rowMap[sh]
-                  if (!row && effectiveStakeholders.length === 1) return null // single empty column → skip
-
-                  return (
-                    <div key={`${stage}-${sh}`} className="card-cell">
-                      {row ? (
-                        <div className="card">
-                          <h3>{row.stakeholder} @ {row.stage}</h3>
-                          {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
-
-                          <details open={!condensed} className={condensed ? '' : 'opened'}>
-                            <summary className="summary-line"></summary>
-
-                            {row.motivation && (<p className="meta"><strong>Motivation:</strong> {row.motivation}</p>)}
-                            {row.goal && (<p className="meta"><strong>Goal:</strong> {row.goal}</p>)}
-                            {row.support && (<p className="meta"><strong>Support:</strong> {row.support}</p>)}
-
-                            {row.plays?.length > 0 && (
-                              <div className="meta">
-                                <strong>Plays:</strong>
-                                <ul className="list">{row.plays.map((p,i)=><li key={i}>{p}</li>)}</ul>
-                              </div>
-                            )}
-
-                            {row.touchpoints?.length > 0 && (
-                              <div className="chips" style={{ marginTop: 6 }}>
-                                {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
-                              </div>
-                            )}
-
-                            {/* --- NEW: Full-detail sections (optional columns) --- */}
-                            {row.emotions?.length > 0 && (
-                              <div className="meta">
-                                <strong>Emotions:</strong>
-                                <div className="chips" style={{ marginTop: 6 }}>
-                                  {row.emotions.map((e,i)=>(<span key={i} className="chip">{e}</span>))}
-                                </div>
-                              </div>
-                            )}
-
-                            {row.quotes?.length > 0 && (
-                              <div className="meta">
-                                <strong>Quotes:</strong>
-                                <ul className="list">
-                                  {row.quotes.map((q,i)=><li key={i}>&ldquo;{q}&rdquo;</li>)}
-                                </ul>
-                              </div>
-                            )}
-
-                            {row.roles?.length > 0 && (
-                              <div className="meta">
-                                <strong>Roles / Stakeholders:</strong>
-                                <div className="chips" style={{ marginTop: 6 }}>
-                                  {row.roles.map((r,i)=>(<span key={i} className="chip">{r}</span>))}
-                                </div>
-                              </div>
-                            )}
-
-                            {row.influences?.length > 0 && (
-                              <div className="meta">
-                                <strong>Influences:</strong>
-                                <ul className="list">
-                                  {row.influences.map((inf,i)=><li key={i}>{inf}</li>)}
-                                </ul>
-                              </div>
-                            )}
-
-                            {row.barriers?.length > 0 && (
-                              <div className="meta">
-                                <strong>Barriers / Risks:</strong>
-                                <ul className="list">
-                                  {row.barriers.map((b,i)=><li key={i}>{b}</li>)}
-                                </ul>
-                              </div>
-                            )}
-
-                            {row.evidence?.length > 0 && (
-                              <div className="meta">
-                                <strong>Evidence / Proof Needed:</strong>
-                                <ul className="list">
-                                  {row.evidence.map((ev,i)=><li key={i}>{ev}</li>)}
-                                </ul>
-                              </div>
-                            )}
-
-                            {row.opportunities?.length > 0 && (
-                              <div className="meta">
-                                <strong>Opportunities (How we can win):</strong>
-                                <ul className="list">
-                                  {row.opportunities.map((op,i)=><li key={i}>{op}</li>)}
-                                </ul>
-                              </div>
-                            )}
-                            {/* --- /NEW --- */}
-                          </details>
-                        </div>
-                      ) : (
-                        // preserve grid alignment only when multi-row/column
-                        <div className="empty">—</div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
+    rows.sort((a, b) => (a.stakeholderOrder - b.stakeholderOrder) || 0
