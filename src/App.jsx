@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 
 // Google Sheets “Publish to web” CSV
-// (File → Share → Publish to web → Link → CSV)
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
 
-// ---------- CSV parsing (RFC-4180-ish) ----------
+// ---------- CSV parsing ----------
 function parseCSVRaw(text) {
   const rows = []
   let row = []
@@ -16,8 +15,8 @@ function parseCSVRaw(text) {
     if (inQuotes) {
       if (ch === '"') {
         const next = text[i + 1]
-        if (next === '"') { cell += '"'; i += 2; continue } // escaped quote ""
-        inQuotes = false; i++; continue                      // closing quote
+        if (next === '"') { cell += '"'; i += 2; continue }
+        inQuotes = false; i++; continue
       }
       cell += ch; i++; continue
     } else {
@@ -31,7 +30,6 @@ function parseCSVRaw(text) {
   row.push(cell); rows.push(row)
   return rows
 }
-
 function parseCSV(text) {
   const matrix = parseCSVRaw(text).filter(r => r.length && !(r.length === 1 && r[0] === ''))
   if (!matrix.length) return []
@@ -53,7 +51,7 @@ function parseCSV(text) {
   })
 }
 
-// ---------- UI ----------
+// ---------- UI constants ----------
 const ALL_STAGES = ['Potential','Awareness','Research','Pitching','Deployment','Onboarding','Retention']
 const ALL_STAKEHOLDERS = ['User(s)','Champion','Exec / Approver','Team Lead (Systems/QA)','QA','Peers/Refs']
 
@@ -86,7 +84,7 @@ export default function App() {
   const [selectedStages, setSelectedStages] = useState([])
   const [selectedStakeholders, setSelectedStakeholders] = useState([])
 
-  // Fetch Google Sheets CSV (cache-busted)
+  // Load CSV
   useEffect(() => {
     const url = `${CSV_URL}&t=${Date.now()}`
     fetch(url, { cache: 'no-store' })
@@ -95,59 +93,48 @@ export default function App() {
         const rows = parseCSV(txt)
         if (!rows.length) throw new Error('No rows parsed')
         setData(rows)
-        // Initialize filters from live data (not constants)
         setSelectedStages([...new Set(rows.map(r => r.stage))])
         setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))])
       })
       .catch(e => setError(e.message))
   }, [])
 
+  // ---- Visibility / grid helpers ----
   const visible = useMemo(() => {
-    return data.filter(d => selectedStages.includes(d.stage) && selectedStakeholders.includes(d.stakeholder))
+    return data.filter(d =>
+      selectedStages.includes(d.stage) &&
+      selectedStakeholders.includes(d.stakeholder)
+    )
   }, [data, selectedStages, selectedStakeholders])
 
-  // Only show stages that actually have at least one row for any selected stakeholder
-const activeStages = useMemo(() => {
-  return selectedStages.filter(st =>
-    data.some(d => d.stage === st && selectedStakeholders.includes(d.stakeholder))
-  )
-}, [data, selectedStages, selectedStakeholders])
+  const activeStages = useMemo(() => {
+    return selectedStages.filter(st =>
+      data.some(d => d.stage === st && selectedStakeholders.includes(d.stakeholder))
+    )
+  }, [data, selectedStages, selectedStakeholders])
 
-// Only show stakeholders that actually have at least one row in any selected stage
-const activeStakeholders = useMemo(() => {
-  return selectedStakeholders.filter(sh =>
-    data.some(d => d.stakeholder === sh && selectedStages.includes(d.stage))
-  )
-}, [data, selectedStages, selectedStakeholders])
+  const activeStakeholders = useMemo(() => {
+    return selectedStakeholders.filter(sh =>
+      data.some(d => d.stakeholder === sh && selectedStages.includes(d.stage))
+    )
+  }, [data, selectedStages, selectedStakeholders])
 
-// Fast lookup: stage -> stakeholder -> row
-const byStage = useMemo(() => {
-  const m = new Map()
-  for (const st of activeStages) m.set(st, {})
-  for (const row of data) {
-    if (!activeStages.includes(row.stage)) continue
-    if (!activeStakeholders.includes(row.stakeholder)) continue
-    if (!m.has(row.stage)) m.set(row.stage, {})
-    m.get(row.stage)[row.stakeholder] = row
-  }
-  return m
-}, [data, activeStages, activeStakeholders])
-
-  
-  // stage → stakeholder → row
+  // stage → stakeholder → row (single declaration)
   const byStage = useMemo(() => {
     const m = new Map()
-    for (const st of selectedStages) m.set(st, {})
+    for (const st of activeStages) m.set(st, {})
     for (const row of visible) {
+      if (!activeStages.includes(row.stage)) continue
+      if (!activeStakeholders.includes(row.stakeholder)) continue
       if (!m.has(row.stage)) m.set(row.stage, {})
       m.get(row.stage)[row.stakeholder] = row
     }
     return m
-  }, [visible, selectedStages])
+  }, [visible, activeStages, activeStakeholders])
 
-const gridStyle = {
-  gridTemplateColumns: activeStakeholders.map(() => 'minmax(280px, 1fr)').join(' ')
-}
+  const gridStyle = {
+    gridTemplateColumns: activeStakeholders.map(() => 'minmax(280px, 1fr)').join(' ')
+  }
 
   const toggle = (setArr) => (val) =>
     setArr(curr => curr.includes(val) ? curr.filter(x => x !== val) : [...curr, val])
@@ -185,48 +172,38 @@ const gridStyle = {
       </div>
 
       <div className="grid-wrap">
-        
-<div className="grid" style={gridStyle}>
-  {activeStages.map(stage => {
-    const rowMap = byStage.get(stage) || {}
-    // If a stage ends up empty after pruning, skip it entirely
-    if (!Object.keys(rowMap).length) return null
-    return (
-      <div key={stage} className="row" style={{ display:'contents' }}>
-        {activeStakeholders.map(sh => {
-          const row = rowMap[sh]
-          if (!row) return null  // ⬅️ no dash, no empty cell
-          return (
-            <div key={stage + sh} className="card-cell">
-              <div className="card">
-                <h3>{row.stakeholder} @ {row.stage}</h3>
-                {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
-                <details open={!condensed} className={condensed ? '' : 'opened'}>
-                  <summary className="summary-line"></summary>
-                  {row.motivation && (<p className="meta"><strong>Motivation:</strong> {row.motivation}</p>)}
-                  {row.goal && (<p className="meta"><strong>Goal:</strong> {row.goal}</p>)}
-                  {row.support && (<p className="meta"><strong>Support:</strong> {row.support}</p>)}
-                  {row.plays?.length > 0 && (
-                    <div className="meta">
-                      <strong>Plays:</strong>
-                      <ul className="list">{row.plays.map((p,i)=><li key={i}>{p}</li>)}</ul>
-                    </div>
-                  )}
-                  {row.touchpoints?.length > 0 && (
-                    <div className="chips" style={{ marginTop: 6 }}>
-                      {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
-                    </div>
-                  )}
-                </details>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    )
-  })}
-</div>
-
+        <div className="grid" style={gridStyle}>
+          {activeStages.map(stage => {
+            const rowMap = byStage.get(stage) || {}
+            if (!Object.keys(rowMap).length) return null
+            return (
+              <div key={stage} className="row" style={{ display:'contents' }}>
+                {activeStakeholders.map(sh => {
+                  const row = rowMap[sh]
+                  if (!row) return null
+                  return (
+                    <div key={`${stage}-${sh}`} className="card-cell">
+                      <div className="card">
+                        <h3>{row.stakeholder} @ {row.stage}</h3>
+                        {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
+                        <details open={!condensed} className={condensed ? '' : 'opened'}>
+                          <summary className="summary-line"></summary>
+                          {row.motivation && (<p className="meta"><strong>Motivation:</strong> {row.motivation}</p>)}
+                          {row.goal && (<p className="meta"><strong>Goal:</strong> {row.goal}</p>)}
+                          {row.support && (<p className="meta"><strong>Support:</strong> {row.support}</p>)}
+                          {row.plays?.length > 0 && (
+                            <div className="meta">
+                              <strong>Plays:</strong>
+                              <ul className="list">{row.plays.map((p,i)=><li key={i}>{p}</li>)}</ul>
+                            </div>
+                          )}
+                          {row.touchpoints?.length > 0 && (
+                            <div className="chips" style={{ marginTop: 6 }}>
+                              {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
+                            </div>
+                          )}
+                        </details>
+                      </div>
                     </div>
                   )
                 })}
