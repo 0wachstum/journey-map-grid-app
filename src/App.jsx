@@ -1,5 +1,3 @@
-// app.jsx
-
 import { useEffect, useMemo, useState } from 'react'
 
 // Google Sheets “Publish to web” CSV
@@ -42,32 +40,41 @@ function parseCSV(text) {
 
   return matrix.slice(1).map(cells => {
     if (cells.length < headers.length) cells = cells.concat(Array(headers.length - cells.length).fill(''))
+
+    const get = (name) => {
+      const i = idx(name)
+      return i >= 0 ? (cells[i] ?? '') : ''
+    }
+
     return {
-      stage:       (cells[idx('Stage')] ?? '').trim(),
-      stakeholder: (cells[idx('Stakeholder')] ?? '').trim(),
-      motivation:  (cells[idx('Motivation')] ?? '').trim(),
-      goal:        (cells[idx('Goal')] ?? '').trim(),
-      support:     (cells[idx('Support')] ?? '').trim(),
-      plays:       semi(cells[idx('Plays')]),
-      touchpoints: semi(cells[idx('Touchpoints')]),
-      kpi:         (cells[idx('KPI')] ?? '').trim(),
+      // Core required fields
+      stage:       get('Stage').trim(),
+      stakeholder: get('Stakeholder').trim(),
+      motivation:  get('Motivation').trim(),
+      goal:        get('Goal').trim(),
+      support:     get('Support').trim(),
+      plays:       semi(get('Plays')),
+      touchpoints: semi(get('Touchpoints')),
+      kpi:         get('KPI').trim(),
 
       // NEW (optional) detail fields — safe if missing
-      emotions:      semi(idx('Emotions')      >= 0 ? cells[idx('Emotions')]      : ''),
-      quotes:        semi(idx('Quotes')        >= 0 ? cells[idx('Quotes')]        : ''),
-      roles:         semi(idx('Roles')         >= 0 ? cells[idx('Roles')]         : ''),
-      influences:    semi(idx('Influences')    >= 0 ? cells[idx('Influences')]    : ''),
-      barriers:      semi(idx('Barriers')      >= 0 ? cells[idx('Barriers')]      : ''),
-      evidence:      semi(idx('Evidence')      >= 0 ? cells[idx('Evidence')]      : ''),
-      opportunities: semi(idx('Opportunities') >= 0 ? cells[idx('Opportunities')] : ''),
+      emotions:      semi(get('Emotions')),
+      quotes:        semi(get('Quotes')),
+      roles:         semi(get('Roles')),
+      influences:    semi(get('Influences')),
+      barriers:      semi(get('Barriers')),
+      evidence:      semi(get('Evidence')),
+      opportunities: semi(get('Opportunities')),
+
+      // Optional ordering / grouping
+      stageOrder:       Number(get('StageOrder') || Number.POSITIVE_INFINITY),
+      stakeholderOrder: Number(get('StakeholderOrder') || Number.POSITIVE_INFINITY),
+      stageGroup:       get('StageGroup').trim(),
     }
   })
 }
 
-// ---------- UI constants ----------
-const ALL_STAGES = ['Potential','Awareness','Research','Pitching','Deployment','Onboarding','Retention']
-const ALL_STAKEHOLDERS = ['User(s)','Champion','Exec / Approver','Team Lead (Systems/QA)','QA','Peers/Refs']
-
+// ---------- UI ----------
 function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear }) {
   return (
     <div>
@@ -97,7 +104,7 @@ export default function App() {
   const [selectedStages, setSelectedStages] = useState([])
   const [selectedStakeholders, setSelectedStakeholders] = useState([])
 
-  // Load CSV
+  // Load CSV (cache-busted)
   useEffect(() => {
     const url = `${CSV_URL}&t=${Date.now()}`
     fetch(url, { cache: 'no-store' })
@@ -106,11 +113,43 @@ export default function App() {
         const rows = parseCSV(txt)
         if (!rows.length) throw new Error('No rows parsed')
         setData(rows)
+        // Initialize selections from data (unique in first-appearance order)
         setSelectedStages([...new Set(rows.map(r => r.stage))])
         setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))])
       })
       .catch(e => setError(e.message))
   }, [])
+
+  // Derive all stages/stakeholders dynamically (respect optional *Order columns)
+  const allStages = useMemo(() => {
+    const seen = new Set()
+    const rows = [...data]
+    rows.sort((a, b) => (a.stageOrder - b.stageOrder) || 0)
+    const list = []
+    for (const r of rows) {
+      if (!r.stage) continue
+      if (!seen.has(r.stage)) {
+        seen.add(r.stage)
+        list.push(r.stage)
+      }
+    }
+    return list
+  }, [data])
+
+  const allStakeholders = useMemo(() => {
+    const seen = new Set()
+    const rows = [...data]
+    rows.sort((a, b) => (a.stakeholderOrder - b.stakeholderOrder) || 0)
+    const list = []
+    for (const r of rows) {
+      if (!r.stakeholder) continue
+      if (!seen.has(r.stakeholder)) {
+        seen.add(r.stakeholder)
+        list.push(r.stakeholder)
+      }
+    }
+    return list
+  }, [data])
 
   // Visible rows under current filters
   const visible = useMemo(() => {
@@ -138,7 +177,7 @@ export default function App() {
   const effectiveStages = activeStages.length === 1 ? activeStages : selectedStages
   const effectiveStakeholders = activeStakeholders.length === 1 ? activeStakeholders : selectedStakeholders
 
-  // stage → stakeholder → row
+  // stage → stakeholder → row map
   const byStage = useMemo(() => {
     const m = new Map()
     for (const st of effectiveStages) m.set(st, {})
@@ -160,6 +199,9 @@ export default function App() {
 
   if (error) return <div style={{ padding: 16 }}>Error: {error}</div>
   if (!data.length) return <div style={{ padding: 16 }}>Loading…</div>
+  if (!allStages.length || !allStakeholders.length) {
+    return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
+  }
 
   return (
     <div className="container">
@@ -174,18 +216,18 @@ export default function App() {
       <div className="controls">
         <ToggleRail
           label="Journey Stages"
-          values={ALL_STAGES}
+          values={allStages}
           selected={selectedStages}
           onToggle={toggle(setSelectedStages)}
-          onSelectAll={() => setSelectedStages([...new Set(data.map(r => r.stage))])}
+          onSelectAll={() => setSelectedStages(allStages)}
           onClear={() => setSelectedStages([])}
         />
         <ToggleRail
           label="Stakeholders"
-          values={ALL_STAKEHOLDERS}
+          values={allStakeholders}
           selected={selectedStakeholders}
           onToggle={toggle(setSelectedStakeholders)}
-          onSelectAll={() => setSelectedStakeholders([...new Set(data.map(r => r.stakeholder))])}
+          onSelectAll={() => setSelectedStakeholders(allStakeholders)}
           onClear={() => setSelectedStakeholders([])}
         />
       </div>
@@ -209,6 +251,7 @@ export default function App() {
                         <div className="card">
                           <h3>{row.stakeholder} @ {row.stage}</h3>
                           {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
+
                           <details open={!condensed} className={condensed ? '' : 'opened'}>
                             <summary className="summary-line"></summary>
 
@@ -293,7 +336,6 @@ export default function App() {
                               </div>
                             )}
                             {/* --- /NEW --- */}
-
                           </details>
                         </div>
                       ) : (
