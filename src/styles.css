@@ -29,9 +29,9 @@ body {
 .rail { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 6px 0; }
 .btn { border: 1px solid var(--border); background: transparent; color: var(--text); padding: 8px 14px; border-radius: 999px; cursor: pointer; }
 .btn:hover { border-color: var(--muted); }
-.btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+.btn.active { border-color: var(--accent); color: white; } 
 .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); text-decoration: underline; }
-.grid-wrap { overflow: auto; background: rgba(16,22,33,.5); border: 1px solid var(--border); border-radius: 12px; }
+.grid-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
 .grid { display: grid; grid-auto-rows: 1fr; gap: 8px; padding: 8px; min-width: 900px; }
 .header { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 1px solid var(--border); display: contents; }
 .header-cell, .stage-cell, .card-cell { padding: 8px; }
