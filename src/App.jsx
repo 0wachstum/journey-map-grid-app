@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 
 // 1) Put your direct CSV download link here (OneDrive/SharePoint; if it already has ?e=..., append &download=1)
-const CSV_URL = 'CSV_URL = https://schlafenderhasegmbh-my.sharepoint.com/:x:/g/personal/alexander_stamm_sh-p_de/EeqTwC6dvXFOjqbs6m8eYyAB4w-zmzuR-NZaeJAd5OUp7g?e=rxr5re&download=1'
+
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv';
+
+useEffect(() => {
+  fetch(`${CSV_URL}&t=${Date.now()}`, { cache: 'no-store' })
+    .then(r => r.text())
+    .then(txt => {
+      const rows = parseCSV(txt);
+      if (!rows.length) throw new Error('No rows parsed');
+      setData(rows);
+      setSelectedStages([...new Set(rows.map(r => r.stage))]);
+      setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))]);
+    })
+    .catch(e => setError(e.message));
+}, []);
 
 
 // --- Robust inline CSV parsing (handles commas, quotes, and newlines in quoted cells) ---
@@ -98,19 +112,6 @@ export default function App() {
   // Multi-select filters
   const [selectedStages, setSelectedStages] = useState([])
   const [selectedStakeholders, setSelectedStakeholders] = useState([])
-
-useEffect(() => {
-  fetch(`/api/journey?t=${Date.now()}`, { cache: 'no-store' })
-    .then(r => r.text())        // API returns CSV text
-    .then(txt => {
-      const rows = parseCSV(txt);   // keep your robust inline parser
-      if (!rows.length) throw new Error('No rows parsed');
-      setData(rows);
-      setSelectedStages([...new Set(rows.map(r => r.stage))]);
-      setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))]);
-    })
-    .catch(e => setError(e.message));
-}, []);
 
   const visible = useMemo(() => {
     return data.filter(d =>
