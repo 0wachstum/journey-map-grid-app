@@ -168,23 +168,40 @@ export default function App() {
                   if (!row) return <div key={stage + sh} className="card-cell"><div className="empty">—</div></div>
                   return (
                     <div key={stage + sh} className="card-cell">
-                      <div className="card">
-                        <h3>{row.stakeholder} @ {row.stage}</h3>
-                        <div className="kpi">KPI: {row.kpi}</div>
-                        <details open={!condensed} className={condensed ? '' : 'opened'}>
-                          <summary className="summary-line"></summary>
-                          <p className="meta"><strong>Motivation:</strong> {row.motivation}</p>
-                          <p className="meta"><strong>Goal:</strong> {row.goal}</p>
-                          <p className="meta"><strong>Support:</strong> {row.support}</p>
-                          <div className="meta">
-                            <strong>Plays:</strong>
-                            <ul className="list">{row.plays.map((p,i)=><li key={i}>{p}</li>)}</ul>
-                          </div>
-                          <div className="chips" style={{ marginTop: 6 }}>
-                            {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
-                          </div>
-                        </details>
-                      </div>
+<div className="card">
+  <h3>{row.stakeholder} @ {row.stage}</h3>
+  {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
+
+  <details open={!condensed} className={condensed ? '' : 'opened'}>
+    <summary className="summary-line"></summary>
+
+    {row.motivation && (
+      <p className="meta"><strong>Motivation:</strong> {row.motivation}</p>
+    )}
+    {row.goal && (
+      <p className="meta"><strong>Goal:</strong> {row.goal}</p>
+    )}
+    {row.support && (
+      <p className="meta"><strong>Support:</strong> {row.support}</p>
+    )}
+
+    {row.plays && row.plays.length > 0 && (
+      <div className="meta">
+        <strong>Plays:</strong>
+        <ul className="list">
+          {row.plays.map((p,i)=><li key={i}>{p}</li>)}
+        </ul>
+      </div>
+    )}
+
+    {row.touchpoints && row.touchpoints.length > 0 && (
+      <div className="chips" style={{ marginTop: 6 }}>
+        {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
+      </div>
+    )}
+  </details>
+</div>
+
                     </div>
                   )
                 })}
