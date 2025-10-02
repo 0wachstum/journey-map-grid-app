@@ -1,58 +1,34 @@
 import { useEffect, useMemo, useState } from 'react'
 
-// 1) Put your direct CSV download link here (OneDrive/SharePoint; if it already has ?e=..., append &download=1)
+// Google Sheets “Publish to web” CSV
+// (File → Share → Publish to web → Link → CSV)
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
 
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv';
-
-useEffect(() => {
-  fetch(`${CSV_URL}&t=${Date.now()}`, { cache: 'no-store' })
-    .then(r => r.text())
-    .then(txt => {
-      const rows = parseCSV(txt);
-      if (!rows.length) throw new Error('No rows parsed');
-      setData(rows);
-      setSelectedStages([...new Set(rows.map(r => r.stage))]);
-      setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))]);
-    })
-    .catch(e => setError(e.message));
-}, []);
-
-
-// --- Robust inline CSV parsing (handles commas, quotes, and newlines in quoted cells) ---
+// ---------- CSV parsing (RFC-4180-ish) ----------
 function parseCSVRaw(text) {
   const rows = []
   let row = []
   let cell = ''
   let i = 0
   let inQuotes = false
-
   while (i < text.length) {
     const ch = text[i]
     if (inQuotes) {
       if (ch === '"') {
         const next = text[i + 1]
-        if (next === '"') { cell += '"'; i += 2; continue } // escaped quote
-        inQuotes = false; i++; continue                      // close quote
+        if (next === '"') { cell += '"'; i += 2; continue } // escaped quote ""
+        inQuotes = false; i++; continue                      // closing quote
       }
       cell += ch; i++; continue
     } else {
       if (ch === '"') { inQuotes = true; i++; continue }
       if (ch === ',') { row.push(cell); cell = ''; i++; continue }
-      if (ch === '\r') {
-        const next = text[i + 1]
-        row.push(cell); cell = ''; rows.push(row); row = []
-        i += (next === '\n') ? 2 : 1
-        continue
-      }
-      if (ch === '\n') {
-        row.push(cell); cell = ''; rows.push(row); row = []
-        i++; continue
-      }
+      if (ch === '\r') { const n = text[i + 1]; row.push(cell); cell=''; rows.push(row); row=[]; i += (n === '\n') ? 2 : 1; continue }
+      if (ch === '\n') { row.push(cell); cell=''; rows.push(row); row=[]; i++; continue }
       cell += ch; i++
     }
   }
-  row.push(cell)
-  rows.push(row)
+  row.push(cell); rows.push(row)
   return rows
 }
 
@@ -61,23 +37,23 @@ function parseCSV(text) {
   if (!matrix.length) return []
   const headers = matrix[0].map(h => (h ?? '').trim())
   const idx = (name) => headers.indexOf(name)
-  const splitSemi = (v) => (v ? String(v).split(';').map(s => s.trim()).filter(Boolean) : [])
+  const semi = (v) => (v ? String(v).split(';').map(s => s.trim()).filter(Boolean) : [])
   return matrix.slice(1).map(cells => {
     if (cells.length < headers.length) cells = cells.concat(Array(headers.length - cells.length).fill(''))
     return {
-      stage: (cells[idx('Stage')] ?? '').trim(),
+      stage:       (cells[idx('Stage')] ?? '').trim(),
       stakeholder: (cells[idx('Stakeholder')] ?? '').trim(),
-      motivation: (cells[idx('Motivation')] ?? '').trim(),
-      goal: (cells[idx('Goal')] ?? '').trim(),
-      support: (cells[idx('Support')] ?? '').trim(),
-      plays: splitSemi(cells[idx('Plays')]),
-      touchpoints: splitSemi(cells[idx('Touchpoints')]),
-      kpi: (cells[idx('KPI')] ?? '').trim(),
+      motivation:  (cells[idx('Motivation')] ?? '').trim(),
+      goal:        (cells[idx('Goal')] ?? '').trim(),
+      support:     (cells[idx('Support')] ?? '').trim(),
+      plays:       semi(cells[idx('Plays')]),
+      touchpoints: semi(cells[idx('Touchpoints')]),
+      kpi:         (cells[idx('KPI')] ?? '').trim(),
     }
   })
 }
 
-// ——— UI constants ———
+// ---------- UI ----------
 const ALL_STAGES = ['Potential','Awareness','Research','Pitching','Deployment','Onboarding','Retention']
 const ALL_STAKEHOLDERS = ['User(s)','Champion','Exec / Approver','Team Lead (Systems/QA)','QA','Peers/Refs']
 
@@ -92,7 +68,9 @@ function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear })
             className={`btn ${selected.includes(v) ? 'active' : ''}`}
             aria-pressed={selected.includes(v)}
             onClick={() => onToggle(v)}
-          >{v}</button>
+          >
+            {v}
+          </button>
         ))}
         <button className="btn ghost" onClick={onSelectAll}>All</button>
         <button className="btn ghost" onClick={onClear}>Clear</button>
@@ -102,25 +80,33 @@ function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear })
 }
 
 export default function App() {
-  // Global condensed/expanded toggle for cards
   const [condensed, setCondensed] = useState(true)
-
-  // Live data from CSV
   const [data, setData] = useState([])
   const [error, setError] = useState('')
-
-  // Multi-select filters
   const [selectedStages, setSelectedStages] = useState([])
   const [selectedStakeholders, setSelectedStakeholders] = useState([])
 
+  // Fetch Google Sheets CSV (cache-busted)
+  useEffect(() => {
+    const url = `${CSV_URL}&t=${Date.now()}`
+    fetch(url, { cache: 'no-store' })
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text() })
+      .then(txt => {
+        const rows = parseCSV(txt)
+        if (!rows.length) throw new Error('No rows parsed')
+        setData(rows)
+        // Initialize filters from live data (not constants)
+        setSelectedStages([...new Set(rows.map(r => r.stage))])
+        setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))])
+      })
+      .catch(e => setError(e.message))
+  }, [])
+
   const visible = useMemo(() => {
-    return data.filter(d =>
-      selectedStages.includes(d.stage) &&
-      selectedStakeholders.includes(d.stakeholder)
-    )
+    return data.filter(d => selectedStages.includes(d.stage) && selectedStakeholders.includes(d.stakeholder))
   }, [data, selectedStages, selectedStakeholders])
 
-  // Map for quick grid lookup (stage → stakeholder → row)
+  // stage → stakeholder → row
   const byStage = useMemo(() => {
     const m = new Map()
     for (const st of selectedStages) m.set(st, {})
@@ -132,7 +118,6 @@ export default function App() {
   }, [visible, selectedStages])
 
   const gridStyle = {
-    // You asked to remove header row & stage column → only stakeholder columns remain
     gridTemplateColumns: selectedStakeholders.map(() => 'minmax(280px, 1fr)').join(' ')
   }
 
@@ -180,14 +165,14 @@ export default function App() {
               <div key={stage} className="row" style={{ display:'contents' }}>
                 {selectedStakeholders.map(sh => {
                   const row = rowMap[sh]
-                  if (!row) return <div key={sh} className="card-cell"><div className="empty">—</div></div>
+                  if (!row) return <div key={stage + sh} className="card-cell"><div className="empty">—</div></div>
                   return (
-                    <div key={sh} className="card-cell">
+                    <div key={stage + sh} className="card-cell">
                       <div className="card">
                         <h3>{row.stakeholder} @ {row.stage}</h3>
                         <div className="kpi">KPI: {row.kpi}</div>
                         <details open={!condensed} className={condensed ? '' : 'opened'}>
-                          <summary className="summary-line"></summary> {/* arrow handled via CSS */}
+                          <summary className="summary-line"></summary>
                           <p className="meta"><strong>Motivation:</strong> {row.motivation}</p>
                           <p className="meta"><strong>Goal:</strong> {row.goal}</p>
                           <p className="meta"><strong>Support:</strong> {row.support}</p>
@@ -211,4 +196,3 @@ export default function App() {
     </div>
   )
 }
-
