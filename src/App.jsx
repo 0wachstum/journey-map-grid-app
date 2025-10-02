@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 // 1) Put your direct CSV download link here (OneDrive/SharePoint; if it already has ?e=..., append &download=1)
-const CSV_URL = 'https://schlafenderhasegmbh-my.sharepoint.com/:x:/g/personal/alexander_stamm_sh-p_de/EQALQ6iYDwFPmpvw_zTIDokBftUFr-RxQjiEb2zs1c64kQ?e=lxQys2?download=1'
+const CSV_URL = 'https://schlafenderhasegmbh-my.sharepoint.com/:x:/g/personal/alexander_stamm_sh-p_de/EQALQ6iYDwFPmpvw_zTIDokBftUFr-RxQjiEb2zs1c64kQ?e=urN83r?download=1'
 
 // --- Robust inline CSV parsing (handles commas, quotes, and newlines in quoted cells) ---
 function parseCSVRaw(text) {
