@@ -98,20 +98,18 @@ export default function App() {
   const [selectedStages, setSelectedStages] = useState([])
   const [selectedStakeholders, setSelectedStakeholders] = useState([])
 
-  useEffect(() => {
-    const url = `${CSV_URL}${CSV_URL.includes('?') ? '&' : '?'}t=${Date.now()}` // cache-bust
-    
-    fetch(url, { cache: 'no-store' })
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text() })
-      .then(txt => {
-        const rows = parseCSV(txt)
-        if (!rows.length) throw new Error('No rows parsed — check headers (Stage, Stakeholder, Motivation, Goal, Support, Plays, Touchpoints, KPI).')
-        setData(rows)
-        setSelectedStages([...new Set(rows.map(r => r.stage))])
-        setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))])
-      })
-      .catch(e => setError(e.message))
-  }, [])
+useEffect(() => {
+  fetch(`/api/journey?t=${Date.now()}`, { cache: 'no-store' })
+    .then(r => r.text())        // API returns CSV text
+    .then(txt => {
+      const rows = parseCSV(txt);   // keep your robust inline parser
+      if (!rows.length) throw new Error('No rows parsed');
+      setData(rows);
+      setSelectedStages([...new Set(rows.map(r => r.stage))]);
+      setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))]);
+    })
+    .catch(e => setError(e.message));
+}, []);
 
   const visible = useMemo(() => {
     return data.filter(d =>
