@@ -107,8 +107,52 @@ function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear })
   )
 }
 
+// Generic renderer for a field
+function Section({ label, children }) {
+  return (
+    <div className="meta">
+      <strong>{label}:</strong>
+      {children}
+    </div>
+  )
+}
+
+function Chips({ items }) {
+  return (
+    <div className="chips" style={{ marginTop: 6 }}>
+      {items.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
+    </div>
+  )
+}
+
+function List({ items, quote }) {
+  return (
+    <ul className="list">
+      {items.map((v,i)=>(
+        <li key={i}>{quote ? <>&ldquo;{v}&rdquo;</> : v}</li>
+      ))}
+    </ul>
+  )
+}
+
+// Decide which fields to show in Highlights mode
+const OPTIONAL_ORDER = ['goal','support','plays','emotions','quotes','roles','influences','barriers','evidence','opportunities']
+
+function pickHighlightExtras(row, max = 3) {
+  const picks = []
+  for (const key of OPTIONAL_ORDER) {
+    const val = row[key]
+    const has =
+      Array.isArray(val) ? val.length > 0 :
+      typeof val === 'string' ? val.trim().length > 0 : false
+    if (has) picks.push(key)
+    if (picks.length >= max) break
+  }
+  return picks
+}
+
 export default function App() {
-  const [condensed, setCondensed] = useState(true)
+  const [viewMode, setViewMode] = useState('highlights') // 'highlights' | 'full'
   const [data, setData] = useState([])
   const [error, setError] = useState('')
   const [selectedStages, setSelectedStages] = useState([])
@@ -211,7 +255,7 @@ export default function App() {
   }, [visible, effectiveStages, effectiveStakeholders])
 
   const gridStyle = {
-    gridTemplateColumns: effectiveStakeholders.map(() => 'minmax(280px, 1fr)').join(' ')
+    gridTemplateColumns: effectiveStakeholders.map(() => 'minmax(300px, 1fr)').join(' ')
   }
 
   const toggle = (setArr) => (val) =>
@@ -223,14 +267,74 @@ export default function App() {
     return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
   }
 
+  // Field renderers
+  const renderField = (key, row) => {
+    switch (key) {
+      case 'motivation':
+        return row.motivation ? <p className="meta"><strong>Motivation:</strong> {row.motivation}</p> : null
+      case 'goal':
+        return row.goal ? <p className="meta"><strong>Goal:</strong> {row.goal}</p> : null
+      case 'support':
+        return row.support ? <p className="meta"><strong>Support:</strong> {row.support}</p> : null
+      case 'plays':
+        return row.plays?.length ? (
+          <Section label="Plays"><List items={row.plays} /></Section>
+        ) : null
+      case 'touchpoints':
+        return row.touchpoints?.length ? (
+          <Section label="Touchpoints"><Chips items={row.touchpoints} /></Section>
+        ) : null
+      case 'emotions':
+        return row.emotions?.length ? (
+          <Section label="Emotions"><Chips items={row.emotions} /></Section>
+        ) : null
+      case 'quotes':
+        return row.quotes?.length ? (
+          <Section label="Quotes"><List items={row.quotes} quote /></Section>
+        ) : null
+      case 'roles':
+        return row.roles?.length ? (
+          <Section label="Roles / Stakeholders"><Chips items={row.roles} /></Section>
+        ) : null
+      case 'influences':
+        return row.influences?.length ? (
+          <Section label="Influences"><List items={row.influences} /></Section>
+        ) : null
+      case 'barriers':
+        return row.barriers?.length ? (
+          <Section label="Barriers / Risks"><List items={row.barriers} /></Section>
+        ) : null
+      case 'evidence':
+        return row.evidence?.length ? (
+          <Section label="Evidence / Proof Needed"><List items={row.evidence} /></Section>
+        ) : null
+      case 'opportunities':
+        return row.opportunities?.length ? (
+          <Section label="Opportunities (How we can win)"><List items={row.opportunities} /></Section>
+        ) : null
+      default:
+        return null
+    }
+  }
+
+  const FULL_ORDER = ['motivation','goal','support','plays','touchpoints','emotions','quotes','roles','influences','barriers','evidence','opportunities']
+
   return (
     <div className="container">
       <h1 className="h1">Customer Journey Grid</h1>
 
-      {/* Condensed / Expanded switch */}
+      {/* View Mode switch */}
       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
-        <button className={`btn ${condensed ? 'active' : ''}`} aria-pressed={condensed} onClick={()=>setCondensed(true)}>Condensed</button>
-        <button className={`btn ${!condensed ? 'active' : ''}`} aria-pressed={!condensed} onClick={()=>setCondensed(false)}>Expanded</button>
+        <button
+          className={`btn ${viewMode === 'highlights' ? 'active' : ''}`}
+          aria-pressed={viewMode === 'highlights'}
+          onClick={()=>setViewMode('highlights')}
+        >Highlights</button>
+        <button
+          className={`btn ${viewMode === 'full' ? 'active' : ''}`}
+          aria-pressed={viewMode === 'full'}
+          onClick={()=>setViewMode('full')}
+        >Full</button>
       </div>
 
       <div className="controls">
@@ -257,13 +361,13 @@ export default function App() {
           {effectiveStages.map(stage => {
             const rowMap = byStage.get(stage) || {}
             const stageHasAny = Object.keys(rowMap).length > 0
-            if (!stageHasAny && effectiveStages.length === 1) return null // single empty row → skip
+            if (!stageHasAny && effectiveStages.length === 1) return null
 
             return (
               <div key={stage} className="row" style={{ display:'contents' }}>
                 {effectiveStakeholders.map(sh => {
                   const row = rowMap[sh]
-                  if (!row && effectiveStakeholders.length === 1) return null // single empty column → skip
+                  if (!row && effectiveStakeholders.length === 1) return null
 
                   return (
                     <div key={`${stage}-${sh}`} className="card-cell">
@@ -272,89 +376,22 @@ export default function App() {
                           <h3>{row.stakeholder} @ {row.stage}</h3>
                           {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
 
-                          <details open={!condensed} className={condensed ? '' : 'opened'}>
-                            <summary className="summary-line"></summary>
-
-                            {row.motivation && (<p className="meta"><strong>Motivation:</strong> {row.motivation}</p>)}
-                            {row.goal && (<p className="meta"><strong>Goal:</strong> {row.goal}</p>)}
-                            {row.support && (<p className="meta"><strong>Support:</strong> {row.support}</p>)}
-
-                            {row.plays?.length > 0 && (
-                              <div className="meta">
-                                <strong>Plays:</strong>
-                                <ul className="list">{row.plays.map((p,i)=><li key={i}>{p}</li>)}</ul>
-                              </div>
-                            )}
-
-                            {row.touchpoints?.length > 0 && (
-                              <div className="chips" style={{ marginTop: 6 }}>
-                                {row.touchpoints.map((t,i)=>(<span key={i} className="chip">{t}</span>))}
-                              </div>
-                            )}
-
-                            {row.emotions?.length > 0 && (
-                              <div className="meta">
-                                <strong>Emotions:</strong>
-                                <div className="chips" style={{ marginTop: 6 }}>
-                                  {row.emotions.map((e,i)=>(<span key={i} className="chip">{e}</span>))}
-                                </div>
-                              </div>
-                            )}
-
-                            {row.quotes?.length > 0 && (
-                              <div className="meta">
-                                <strong>Quotes:</strong>
-                                <ul className="list">
-                                  {row.quotes.map((q,i)=><li key={i}>&ldquo;{q}&rdquo;</li>)}
-                                </ul>
-                              </div>
-                            )}
-
-                            {row.roles?.length > 0 && (
-                              <div className="meta">
-                                <strong>Roles / Stakeholders:</strong>
-                                <div className="chips" style={{ marginTop: 6 }}>
-                                  {row.roles.map((r,i)=>(<span key={i} className="chip">{r}</span>))}
-                                </div>
-                              </div>
-                            )}
-
-                            {row.influences?.length > 0 && (
-                              <div className="meta">
-                                <strong>Influences:</strong>
-                                <ul className="list">
-                                  {row.influences.map((inf,i)=><li key={i}>{inf}</li>)}
-                                </ul>
-                              </div>
-                            )}
-
-                            {row.barriers?.length > 0 && (
-                              <div className="meta">
-                                <strong>Barriers / Risks:</strong>
-                                <ul className="list">
-                                  {row.barriers.map((b,i)=><li key={i}>{b}</li>)}
-                                </ul>
-                              </div>
-                            )}
-
-                            {row.evidence?.length > 0 && (
-                              <div className="meta">
-                                <strong>Evidence / Proof Needed:</strong>
-                                <ul className="list">
-                                  {row.evidence.map((ev,i)=><li key={i}>{ev}</li>)}
-                                </ul>
-                              </div>
-                            )}
-
-                            {row.opportunities?.length > 0 && (
-                              <div className="meta">
-                                <strong>Opportunities (How we can win):</strong>
-                                <ul className="list">
-                                  {row.opportunities.map((op,i)=><li key={i}>{op}</li>)}
-                                </ul>
-                              </div>
-                            )}
-                          </details>
+                          {viewMode === 'highlights' ? (
+                            <>
+                              {renderField('motivation', row)}
+                              {renderField('touchpoints', row)}
+                              {/* Pick first three non-empty fields from OPTIONAL_ORDER */}
+                              {pickHighlightExtras(row, 3).map((key) => (
+                                <div key={key}>{renderField(key, row)}</div>
+                              ))}
+                            </>
+                          ) : (
+                            <>
+                              {FULL_ORDER.map(key => (
+                                <div key={key}>{renderField(key, row)}</div>
+                              ))}
+                            </>
+                          )}
                         </div>
                       ) : (
                         <div className="empty">—</div>
