@@ -1,10 +1,10 @@
-
 // src/App.jsx
 import { useEffect, useMemo, useState } from 'react'
 import JourneyRail from './JourneyRail.jsx'
 
+// Google Sheets “Publish to web” CSV
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
-const CSV_GID = ''
+const CSV_GID = '' // optional tab gid
 
 function stripBOM(text) { return text && text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text }
 
@@ -68,7 +68,7 @@ function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear })
         {values.map(v => (
           <button
             key={v}
-            className={\`btn \${selected.includes(v) ? 'active' : ''}\`}
+            className={`btn ${selected.includes(v) ? 'active' : ''}`}
             aria-pressed={selected.includes(v)}
             onClick={() => onToggle(v)}
           >
@@ -97,7 +97,7 @@ export default function App() {
         const bustPart = `${(base.includes('?') || gidPart) ? '&' : '?'}t=${Date.now()}`
         const url = `${base}${gidPart}${bustPart}`
         const res = await fetch(url, { cache: 'no-store' })
-        if (!res.ok) throw new Error(\`HTTP \${res.status}\`)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         let txt = await res.text()
         txt = stripBOM(txt)
         const rows = parseCSV(txt)
@@ -170,7 +170,6 @@ export default function App() {
   if (!allStages.length || !allStakeholders.length) return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
 
   const OPTIONAL_ORDER = ['goal','support','plays','emotions','quotes','roles','influences','barriers','evidence','opportunities']
-  const FULL_ORDER = ['motivation','goal','support','plays','touchpoints','emotions','quotes','roles','influences','barriers','evidence','opportunities']
 
   const Section = ({ label, children }) => (<div className="meta"><strong>{label}:</strong>{children}</div>)
   const Chips = ({ items }) => (<div className="chips" style={{ marginTop: 6 }}>{items.map((t,i)=>(<span key={i} className="chip">{t}</span>))}</div>)
@@ -206,6 +205,7 @@ export default function App() {
     <div className="container">
       <h1 className="h1">Customer Journey Grid</h1>
 
+      {/* Journey Rail */}
       <JourneyRail
         stages={allStages}
         selectedStages={selectedStages}
@@ -215,9 +215,10 @@ export default function App() {
         onClear={() => setSelectedStages([])}
       />
 
+      {/* View Mode */}
       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
-        <button className={\`btn \${viewMode === 'highlights' ? 'active' : ''}\`} aria-pressed={viewMode === 'highlights'} onClick={()=>setViewMode('highlights')}>Highlights</button>
-        <button className={\`btn \${viewMode === 'full' ? 'active' : ''}\`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
+        <button className={`btn ${viewMode === 'highlights' ? 'active' : ''}`} aria-pressed={viewMode === 'highlights'} onClick={()=>setViewMode('highlights')}>Highlights</button>
+        <button className={`btn ${viewMode === 'full' ? 'active' : ''}`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
       </div>
 
       <div className="controls">
@@ -240,7 +241,7 @@ export default function App() {
       </div>
 
       <div className="grid-wrap">
-        <div className="grid" style={{ gridTemplateColumns: effectiveStakeholders.map(() => 'minmax(300px, 1fr)').join(' ') }}>
+        <div className="grid" style={gridTemplateColumnsStyle(effectiveStakeholders)}>
           {effectiveStages.map(stage => {
             const rowMap = byStage.get(stage) || {}
             const stageHasAny = Object.keys(rowMap).length > 0
@@ -250,8 +251,9 @@ export default function App() {
                 {effectiveStakeholders.map(sh => {
                   const row = rowMap[sh]
                   if (!row && effectiveStakeholders.length === 1) return null
+                  const picks = pickHighlightExtras(row, 3)
                   return (
-                    <div key={\`\${stage}-\${sh}\`} className="card-cell">
+                    <div key={`${stage}-${sh}`} className="card-cell">
                       {row ? (
                         <div className="card">
                           <h3>{row.stakeholder} @ {row.stage}</h3>
@@ -261,7 +263,7 @@ export default function App() {
                               {renderField('motivation', row)}
                               {renderField('touchpoints', row)}
                               {['goal','support','plays','emotions','quotes','roles','influences','barriers','evidence','opportunities']
-                                .filter(k => pickHighlightExtras(row, 3).includes(k))
+                                .filter(k => picks.includes(k))
                                 .map(k => <div key={k}>{renderField(k, row)}</div>)}
                             </>
                           ) : (
@@ -284,4 +286,8 @@ export default function App() {
       </div>
     </div>
   )
+}
+
+function gridTemplateColumnsStyle(cols) {
+  return { gridTemplateColumns: cols.map(() => 'minmax(300px, 1fr)').join(' ') }
 }

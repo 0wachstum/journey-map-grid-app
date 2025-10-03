@@ -1,4 +1,3 @@
-
 // src/JourneyRail.jsx
 import React from 'react'
 
@@ -22,9 +21,9 @@ export default function JourneyRail({
               key={st}
               type="button"
               role="listitem"
-              className={\`jr-step \${active ? 'active' : ''}\`}
+              className={`jr-step ${active ? 'active' : ''}`}
               aria-pressed={active}
-              title={\`\${st} • \${count} card\${count === 1 ? '' : 's'}\`}
+              title={`${st} • ${count} card${count === 1 ? '' : 's'}`}
               onClick={() => onToggle(st)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
