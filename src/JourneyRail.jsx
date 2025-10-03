@@ -23,10 +23,7 @@ export default function JourneyRail({
               title={st}
               onClick={() => onToggle(st)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  onToggle(st)
-                }
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(st) }
               }}
             >
               <span className="jr-dot" />
