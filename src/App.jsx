@@ -242,8 +242,6 @@ export default function App() {
 
   return (
     <div className="container">
-      <h1 className="h1">Customer Journey Grid</h1>
-
       {/* Journey Rail */}
       <JourneyRail
         stages={allStages}
@@ -269,14 +267,6 @@ export default function App() {
       </div>
 
       <div className="controls">
-        <ToggleRail
-          label="Journey Stages"
-          values={allStages}
-          selected={selectedStages}
-          onToggle={toggle(setSelectedStages)}
-          onSelectAll={() => setSelectedStages(allStages)}
-          onClear={() => setSelectedStages([])}
-        />
         <ToggleRail
           label="Stakeholders"
           values={allStakeholders}
