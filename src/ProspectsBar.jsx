@@ -40,4 +40,21 @@ export default function ProspectsBar({
   return (
     <div className="prospects-bar" role="img" aria-label="Prospects per stage">
       <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-        <line x1={padL} y1={H
+        <line x1={padL} y1={H - padB + 0.5} x2={W - padR} y2={H - padB + 0.5} stroke="var(--border)" strokeWidth="1" />
+        {data.map((d, i) => {
+          const x = padL + i * (barW + gap) + gap / 2
+          const h = Math.round((d.value / max) * innerH)
+          const y = H - padB - h
+          return (
+            <g key={d.stage} onClick={() => onBarClick(d.stage)} style={{ cursor: 'pointer' }}>
+              {/* square bars: rx=0 */}
+              <rect x={x} y={y} width={barW} height={h} rx="0" fill="var(--accent)" opacity="0.9" />
+              {/* hover value via native tooltip */}
+              <title>{`${d.stage}: ${d.value} prospects`}</title>
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
