@@ -1,15 +1,14 @@
-
-// src/App.jsx
 import { useEffect, useMemo, useState } from 'react'
 import JourneyRail from './JourneyRail.jsx'
+import ProspectsBar from './ProspectsBar.jsx'
 
-// Google Sheets “Publish to web” CSV
+// Google Sheets CSV
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
 const CSV_GID = '' // optional tab gid
 
 function stripBOM(text) { return text && text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text }
 
-// ---------- CSV parsing ----------
+// --- CSV parsing (unchanged & robust) ---
 function parseCSVRaw(text) {
   const rows = []; let row = []; let cell = ''; let i = 0; let inQuotes = false
   while (i < text.length) {
@@ -20,14 +19,13 @@ function parseCSVRaw(text) {
     } else {
       if (ch === '"') { inQuotes = true; i++; continue }
       if (ch === ',') { row.push(cell); cell=''; i++; continue }
-      if (ch === '\r') { const n = text[i+1]; row.push(cell); cell=''; rows.push(row); row=[]; i += (n === '\n') ? 2 : 1; continue }
+      if (ch === '\r') { const n = text[i+1]; row.push(cell); cell=''; rows.push(row); row=[]; i += (n==='\\n')?2:1; continue }
       if (ch === '\n') { row.push(cell); cell=''; rows.push(row); row=[]; i++; continue }
       cell += ch; i++
     }
   }
   row.push(cell); rows.push(row); return rows
 }
-
 function parseCSV(text) {
   const matrix = parseCSVRaw(text).filter(r => r.length && !(r.length===1 && r[0]===''))
   if (!matrix.length) return []
@@ -62,7 +60,7 @@ function parseCSV(text) {
   })
 }
 
-// ---------- UI helpers ----------
+// --- Small UI helpers ---
 function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear }) {
   return (
     <div>
@@ -89,13 +87,11 @@ const OPTIONAL_ORDER = ['goal','support','plays','emotions','quotes','roles','in
 const FULL_ORDER = ['motivation','goal','support','plays','touchpoints','emotions','quotes','roles','influences','barriers','evidence','opportunities']
 
 function pickHighlightExtras(row, max = 3) {
-  if (!row) return [] // <- critical guard to prevent crashes on empty cells
+  if (!row) return []
   const picks = []
   for (const key of OPTIONAL_ORDER) {
     const val = row[key]
-    const has =
-      Array.isArray(val) ? val.length > 0 :
-      typeof val === 'string' ? val.trim().length > 0 : false
+    const has = Array.isArray(val) ? val.length > 0 : (typeof val === 'string' ? val.trim().length > 0 : false)
     if (has) picks.push(key)
     if (picks.length >= max) break
   }
@@ -131,7 +127,7 @@ export default function App() {
   const [selectedStages, setSelectedStages] = useState([])
   const [selectedStakeholders, setSelectedStakeholders] = useState([])
 
-  // Load CSV (cache-busted)
+  // Load CSV
   useEffect(() => {
     (async () => {
       try {
@@ -139,82 +135,55 @@ export default function App() {
         const gidPart = CSV_GID ? `${base.includes('?') ? '&' : '?'}single=true&gid=${CSV_GID}` : ''
         const bustPart = `${(base.includes('?') || gidPart) ? '&' : '?'}t=${Date.now()}`
         const url = `${base}${gidPart}${bustPart}`
-
         const res = await fetch(url, { cache: 'no-store' })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         let txt = await res.text()
         txt = stripBOM(txt)
-
         const rows = parseCSV(txt)
-        if (!rows.length) throw new Error('No rows parsed — check header row and that at least one data row exists in the published tab.')
-
+        if (!rows.length) throw new Error('No rows parsed')
         setData(rows)
         setSelectedStages([...new Set(rows.map(r => r.stage))])
         setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))])
-      } catch (e) {
-        setError(e.message || String(e))
-      }
+      } catch (e) { setError(e.message || String(e)) }
     })()
   }, [])
 
-  // Derive all stages/stakeholders dynamically (respect optional *Order columns)
+  // Derive dynamic lists (respecting optional *Order)
   const allStages = useMemo(() => {
-    const seen = new Set()
-    const rows = [...data]
-    rows.sort((a, b) => (a.stageOrder - b.stageOrder) || 0)
+    const seen = new Set(); const rows = [...data]
+    rows.sort((a,b)=> (a.stageOrder - b.stageOrder) || 0)
     const list = []
-    for (const r of rows) {
-      if (!r.stage) continue
-      if (!seen.has(r.stage)) {
-        seen.add(r.stage)
-        list.push(r.stage)
-      }
-    }
+    for (const r of rows) { if (!r.stage) continue; if (!seen.has(r.stage)) { seen.add(r.stage); list.push(r.stage) } }
     return list
   }, [data])
 
   const allStakeholders = useMemo(() => {
-    const seen = new Set()
-    const rows = [...data]
-    rows.sort((a, b) => (a.stakeholderOrder - b.stakeholderOrder) || 0)
+    const seen = new Set(); const rows = [...data]
+    rows.sort((a,b)=> (a.stakeholderOrder - b.stakeholderOrder) || 0)
     const list = []
-    for (const r of rows) {
-      if (!r.stakeholder) continue
-      if (!seen.has(r.stakeholder)) {
-        seen.add(r.stakeholder)
-        list.push(r.stakeholder)
-      }
-    }
+    for (const r of rows) { if (!r.stakeholder) continue; if (!seen.has(r.stakeholder)) { seen.add(r.stakeholder); list.push(r.stakeholder) } }
     return list
   }, [data])
 
   // Visible rows under current filters
   const visible = useMemo(() => {
-    return data.filter(d =>
-      selectedStages.includes(d.stage) &&
-      selectedStakeholders.includes(d.stakeholder)
-    )
+    return data.filter(d => selectedStages.includes(d.stage) && selectedStakeholders.includes(d.stakeholder))
   }, [data, selectedStages, selectedStakeholders])
 
-  // Which stages/stakeholders actually have any data under current filters
+  // Active subsets
   const activeStages = useMemo(() => {
-    return selectedStages.filter(st =>
-      data.some(d => d.stage === st && selectedStakeholders.includes(d.stakeholder))
-    )
+    return selectedStages.filter(st => data.some(d => d.stage === st && selectedStakeholders.includes(d.stakeholder)))
   }, [data, selectedStages, selectedStakeholders])
 
   const activeStakeholders = useMemo(() => {
-    return selectedStakeholders.filter(sh =>
-      data.some(d => d.stakeholder === sh && selectedStages.includes(d.stage))
-    )
+    return selectedStakeholders.filter(sh => data.some(d => d.stakeholder === sh && selectedStages.includes(d.stage)))
   }, [data, selectedStages, selectedStakeholders])
 
-  // Logical grid behavior:
-  // if only one row OR only one column → omit empties on that axis
+  // Grid behavior: keep alignment for multi selection
   const effectiveStages = activeStages.length === 1 ? activeStages : selectedStages
   const effectiveStakeholders = activeStakeholders.length === 1 ? activeStakeholders : selectedStakeholders
 
-  // stage → stakeholder → row map
+  // stage → stakeholder → row
   const byStage = useMemo(() => {
     const m = new Map()
     for (const st of effectiveStages) m.set(st, {})
@@ -227,45 +196,25 @@ export default function App() {
     return m
   }, [visible, effectiveStages, effectiveStakeholders])
 
-  const gridStyle = {
-    gridTemplateColumns: effectiveStakeholders.map(() => 'minmax(300px, 1fr)').join(' ')
-  }
+  const gridStyle = { gridTemplateColumns: effectiveStakeholders.map(() => 'minmax(300px, 1fr)').join(' ') }
 
   const toggle = (setArr) => (val) =>
     setArr(curr => curr.includes(val) ? curr.filter(x => x !== val) : [...curr, val])
 
   if (error) return <div style={{ padding: 16, whiteSpace:'pre-wrap' }}>Error: {error}</div>
   if (!data.length) return <div style={{ padding: 16 }}>Loading…</div>
-  if (!allStages.length || !allStakeholders.length) {
-    return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
-  }
+  if (!allStages.length || !allStakeholders.length) return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
 
   return (
     <div className="container">
-      {/* Journey Rail */}
-      <JourneyRail
-        stages={allStages}
-        selectedStages={selectedStages}
-        counts={Object.fromEntries(allStages.map(s => [s, data.filter(r => r.stage === s && selectedStakeholders.includes(r.stakeholder)).length]))}
-        onToggle={toggle(setSelectedStages)}
-        onSelectAll={() => setSelectedStages(allStages)}
-        onClear={() => setSelectedStages([])}
-      />
 
       {/* View Mode switch */}
       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
-        <button
-          className={`btn ${viewMode === 'highlights' ? 'active' : ''}`}
-          aria-pressed={viewMode === 'highlights'}
-          onClick={()=>setViewMode('highlights')}
-        >Highlights</button>
-        <button
-          className={`btn ${viewMode === 'full' ? 'active' : ''}`}
-          aria-pressed={viewMode === 'full'}
-          onClick={()=>setViewMode('full')}
-        >Full</button>
+        <button className={`btn ${viewMode === 'highlights' ? 'active' : ''}`} aria-pressed={viewMode === 'highlights'} onClick={()=>setViewMode('highlights')}>Highlights</button>
+        <button className={`btn ${viewMode === 'full' ? 'active' : ''}`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
       </div>
 
+      {/* Keep personas filter only */}
       <div className="controls">
         <ToggleRail
           label="Stakeholders"
@@ -277,7 +226,28 @@ export default function App() {
         />
       </div>
 
+      {/* Table wrapper: chart + rail + grid share the same width */}
       <div className="grid-wrap">
+        {/* Prospects bar chart (click a bar to toggle that stage) */}
+        <div style={{ padding: '10px 12px 4px' }}>
+          <ProspectsBar
+            stages={allStages}
+            onBarClick={(st) => toggle(setSelectedStages)(st)}
+          />
+        </div>
+
+        {/* Journey Rail inside grid-wrap so it spans the table width */}
+        <div style={{ padding: '0 8px 8px' }}>
+          <JourneyRail
+            stages={allStages}
+            selectedStages={selectedStages}
+            onToggle={toggle(setSelectedStages)}
+            onSelectAll={() => setSelectedStages(allStages)}
+            onClear={() => setSelectedStages([])}
+          />
+        </div>
+
+        {/* The grid itself */}
         <div className="grid" style={gridStyle}>
           {effectiveStages.map(stage => {
             const rowMap = byStage.get(stage) || {}
@@ -290,7 +260,6 @@ export default function App() {
                   const row = rowMap[sh]
                   if (!row && effectiveStakeholders.length === 1) return null
 
-                  // IMPORTANT: compute picks only if row exists
                   const picks = row ? pickHighlightExtras(row, 3) : []
 
                   return (
@@ -304,7 +273,7 @@ export default function App() {
                             <>
                               {renderField('motivation', row)}
                               {renderField('touchpoints', row)}
-                              {['goal','support','plays','emotions','quotes','roles','influences','barriers','evidence','opportunities']
+                              {OPTIONAL_ORDER
                                 .filter(k => picks.includes(k))
                                 .map(k => <div key={k}>{renderField(k, row)}</div>)}
                             </>
