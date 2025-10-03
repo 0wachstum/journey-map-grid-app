@@ -4,8 +4,6 @@ export default function JourneyRail({
   stages = [],
   selectedStages = [],
   onToggle = () => {},
-  onSelectAll = () => {},
-  onClear = () => {},
 }) {
   return (
     <div className="journey-rail">
@@ -31,10 +29,6 @@ export default function JourneyRail({
             </button>
           )
         })}
-      </div>
-      <div className="jr-actions">
-        <button className="btn ghost" type="button" onClick={onSelectAll}>All</button>
-        <button className="btn ghost" type="button" onClick={onClear}>Clear</button>
       </div>
     </div>
   )
