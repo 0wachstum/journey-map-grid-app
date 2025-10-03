@@ -254,48 +254,103 @@ export default function App() {
             const stageHasAny = Object.keys(rowMap).length > 0
             if (!stageHasAny && effectiveStages.length === 1) return null
 
-            return (
-              <div key={stage} className="row" style={{ display:'contents' }}>
-                {effectiveStakeholders.map(sh => {
-                  const row = rowMap[sh]
-                  if (!row && effectiveStakeholders.length === 1) return null
+return (
+  <div className="container">
+    {/* View Mode switch (unchanged) */}
+    <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
+      <button className={`btn ${viewMode === 'highlights' ? 'active' : ''}`} aria-pressed={viewMode === 'highlights'} onClick={()=>setViewMode('highlights')}>Highlights</button>
+      <button className={`btn ${viewMode === 'full' ? 'active' : ''}`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
+    </div>
 
-                  const picks = row ? pickHighlightExtras(row, 3) : []
+    {/* Table wrapper: BAR → RAIL → STAKEHOLDERS → CARDS */}
+    <div className="grid-wrap">
 
-                  return (
-                    <div key={`${stage}-${sh}`} className="card-cell">
-                      {row ? (
-                        <div className="card">
-                          <h3>{row.stakeholder} @ {row.stage}</h3>
-                          {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
+      {/* 1) Bar Chart (no stage names) */}
+      <div style={{ padding: '10px 12px 0' }}>
+        <ProspectsBar
+          stages={allStages}
+          // later: pass real counts like counts={{ Potential: 120, Awareness: 90, ... }}
+          onBarClick={(st) => toggle(setSelectedStages)(st)}
+        />
+      </div>
 
-                          {viewMode === 'highlights' ? (
-                            <>
-                              {renderField('motivation', row)}
-                              {renderField('touchpoints', row)}
-                              {OPTIONAL_ORDER
-                                .filter(k => picks.includes(k))
-                                .map(k => <div key={k}>{renderField(k, row)}</div>)}
-                            </>
-                          ) : (
-                            <>
-                              {FULL_ORDER.map(key => (
-                                <div key={key}>{renderField(key, row)}</div>
-                              ))}
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="empty">—</div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })}
+      {/* 2) Stage Rail / Selector (aligned, full width) */}
+      <div style={{ padding: '0 8px 8px' }}>
+        <JourneyRail
+          stages={allStages}
+          selectedStages={selectedStages}
+          onToggle={toggle(setSelectedStages)}
+          onSelectAll={() => setSelectedStages(allStages)}
+          onClear={() => setSelectedStages([])}
+        />
+      </div>
+
+      {/* 3) Stakeholder selector (moved inside, right above cards) */}
+      <div style={{ padding: '0 12px 8px' }}>
+        <div className="section-title">Stakeholders</div>
+        <div className="rail">
+          {allStakeholders.map(v => (
+            <button
+              key={v}
+              className={`btn ${selectedStakeholders.includes(v) ? 'active' : ''}`}
+              aria-pressed={selectedStakeholders.includes(v)}
+              onClick={() => toggle(setSelectedStakeholders)(v)}
+            >
+              {v}
+            </button>
+          ))}
+          <button className="btn ghost" onClick={()=>setSelectedStakeholders(allStakeholders)}>All</button>
+          <button className="btn ghost" onClick={()=>setSelectedStakeholders([])}>Clear</button>
         </div>
       </div>
+
+      {/* 4) Cards */}
+      <div className="grid" style={gridStyle}>
+        {effectiveStages.map(stage => {
+          const rowMap = byStage.get(stage) || {}
+          const stageHasAny = Object.keys(rowMap).length > 0
+          if (!stageHasAny && effectiveStages.length === 1) return null
+
+          return (
+            <div key={stage} className="row" style={{ display:'contents' }}>
+              {effectiveStakeholders.map(sh => {
+                const row = rowMap[sh]
+                if (!row && effectiveStakeholders.length === 1) return null
+
+                const picks = row ? pickHighlightExtras(row, 3) : []
+
+                return (
+                  <div key={`${stage}-${sh}`} className="card-cell">
+                    {row ? (
+                      <div className="card">
+                        <h3>{row.stakeholder} @ {row.stage}</h3>
+                        {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
+                        {viewMode === 'highlights' ? (
+                          <>
+                            {renderField('motivation', row)}
+                            {renderField('touchpoints', row)}
+                            {OPTIONAL_ORDER.filter(k => picks.includes(k)).map(k => (
+                              <div key={k}>{renderField(k, row)}</div>
+                            ))}
+                          </>
+                        ) : (
+                          <>
+                            {['motivation','goal','support','plays','touchpoints','emotions','quotes','roles','influences','barriers','evidence','opportunities'].map(k => (
+                              <div key={k}>{renderField(k, row)}</div>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="empty">—</div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
     </div>
-  )
-}
+  </div>
+)
