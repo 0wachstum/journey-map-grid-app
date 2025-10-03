@@ -240,3 +240,56 @@ details[open] > .summary-line::after {
   display: flex;
   gap: 6px;
 }
+
+/* --- Prospects Bar --- */
+.prospects-bar { width: 100%; }
+
+/* --- Journey Rail (inside grid-wrap, full width) --- */
+.journey-rail {
+  position: relative;
+  padding: 8px 8px 14px;
+  border: 0;                       /* no outer border; grid-wrap has it */
+  border-radius: 12px;
+  background: transparent;         /* blend with grid-wrap */
+  overflow-x: auto;
+}
+.jr-track {
+  position: absolute;
+  top: 30px;
+  left: 12px;
+  right: 12px;                     /* span full width inside wrapper */
+  height: 2px;
+  background: var(--border);
+}
+.jr-steps {
+  position: relative;
+  display: flex;
+  gap: 20px;
+  padding-right: 96px;             /* room for All/Clear actions */
+}
+.jr-step {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+}
+.jr-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--border);
+  box-shadow: 0 0 0 2px var(--panel) inset;
+}
+.jr-step.active .jr-dot { background: var(--accent); }
+.jr-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.jr-actions {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+}
