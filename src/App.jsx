@@ -1,6 +1,7 @@
+
+// src/App.jsx
 import { useEffect, useMemo, useState } from 'react'
-import JourneyRail from './JourneyRail.jsx'
-import ProspectsBar from './ProspectsBar.jsx'
+import StageDeck from './StageDeck.jsx'
 
 // Google Sheets CSV
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
@@ -69,28 +70,6 @@ function parseCSV(text) {
 }
 
 // --- UI helpers ---
-function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear }) {
-  return (
-    <div>
-      <div className="section-title">{label}</div>
-      <div className="rail">
-        {values.map(v => (
-          <button
-            key={v}
-            className={`btn ${selected.includes(v) ? 'active' : ''}`}
-            aria-pressed={selected.includes(v)}
-            onClick={() => onToggle(v)}
-          >
-            {v}
-          </button>
-        ))}
-        <button className="btn ghost" onClick={onSelectAll}>All</button>
-        <button className="btn ghost" onClick={onClear}>Clear</button>
-      </div>
-    </div>
-  )
-}
-
 const OPTIONAL_ORDER = ['goal','support','plays','emotions','quotes','roles','influences','barriers','evidence','opportunities']
 const FULL_ORDER = ['motivation','goal','support','plays','touchpoints','emotions','quotes','roles','influences','barriers','evidence','opportunities']
 
@@ -219,29 +198,19 @@ export default function App() {
         <button className={`btn ${viewMode === 'full' ? 'active' : ''}`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
       </div>
 
-      {/* Table wrapper: BAR → RAIL → STAKEHOLDERS → CARDS */}
+      {/* DECK → STAKEHOLDERS → CARDS */}
       <div className="grid-wrap">
 
-        {/* 1) Bar Chart (no stage names) */}
-        <div style={{ padding: '10px 12px 0' }}>
-          <ProspectsBar
-            stages={allStages}
-            onBarClick={(st) => toggle(setSelectedStages)(st)}
-          />
-        </div>
-
-        {/* 2) Stage Rail / Selector */}
-        <div style={{ padding: '0 8px 8px' }}>
-          <JourneyRail
+        {/* 1) Stage Deck (bars + aligned rail) */}
+        <div style={{ padding: '10px 12px 8px' }}>
+          <StageDeck
             stages={allStages}
             selectedStages={selectedStages}
             onToggle={toggle(setSelectedStages)}
-            onSelectAll={() => setSelectedStages(allStages)}
-            onClear={() => setSelectedStages([])}
           />
         </div>
 
-        {/* 3) Stakeholder selector (inside, above cards) */}
+        {/* 2) Stakeholders */}
         <div style={{ padding: '0 12px 8px' }}>
           <div className="section-title">Stakeholders</div>
           <div className="rail">
@@ -260,7 +229,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* 4) Cards */}
+        {/* 3) Cards */}
         <div className="grid" style={gridStyle}>
           {effectiveStages.map(stage => {
             const rowMap = byStage.get(stage) || {}
