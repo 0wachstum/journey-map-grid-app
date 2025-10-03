@@ -205,55 +205,6 @@ export default function App() {
   if (!data.length) return <div style={{ padding: 16 }}>Loading…</div>
   if (!allStages.length || !allStakeholders.length) return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
 
-  return (
-    <div className="container">
-
-      {/* View Mode switch */}
-      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
-        <button className={`btn ${viewMode === 'highlights' ? 'active' : ''}`} aria-pressed={viewMode === 'highlights'} onClick={()=>setViewMode('highlights')}>Highlights</button>
-        <button className={`btn ${viewMode === 'full' ? 'active' : ''}`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
-      </div>
-
-      {/* Keep personas filter only */}
-      <div className="controls">
-        <ToggleRail
-          label="Stakeholders"
-          values={allStakeholders}
-          selected={selectedStakeholders}
-          onToggle={toggle(setSelectedStakeholders)}
-          onSelectAll={() => setSelectedStakeholders(allStakeholders)}
-          onClear={() => setSelectedStakeholders([])}
-        />
-      </div>
-
-      {/* Table wrapper: chart + rail + grid share the same width */}
-      <div className="grid-wrap">
-        {/* Prospects bar chart (click a bar to toggle that stage) */}
-        <div style={{ padding: '10px 12px 4px' }}>
-          <ProspectsBar
-            stages={allStages}
-            onBarClick={(st) => toggle(setSelectedStages)(st)}
-          />
-        </div>
-
-        {/* Journey Rail inside grid-wrap so it spans the table width */}
-        <div style={{ padding: '0 8px 8px' }}>
-          <JourneyRail
-            stages={allStages}
-            selectedStages={selectedStages}
-            onToggle={toggle(setSelectedStages)}
-            onSelectAll={() => setSelectedStages(allStages)}
-            onClear={() => setSelectedStages([])}
-          />
-        </div>
-
-        {/* The grid itself */}
-        <div className="grid" style={gridStyle}>
-          {effectiveStages.map(stage => {
-            const rowMap = byStage.get(stage) || {}
-            const stageHasAny = Object.keys(rowMap).length > 0
-            if (!stageHasAny && effectiveStages.length === 1) return null
-
 return (
   <div className="container">
     {/* View Mode switch (unchanged) */}
