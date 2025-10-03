@@ -1,3 +1,4 @@
+
 // src/App.jsx
 import { useEffect, useMemo, useState } from 'react'
 import JourneyRail from './JourneyRail.jsx'
@@ -8,6 +9,7 @@ const CSV_GID = '' // optional tab gid
 
 function stripBOM(text) { return text && text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text }
 
+// ---------- CSV parsing ----------
 function parseCSVRaw(text) {
   const rows = []; let row = []; let cell = ''; let i = 0; let inQuotes = false
   while (i < text.length) {
@@ -18,7 +20,7 @@ function parseCSVRaw(text) {
     } else {
       if (ch === '"') { inQuotes = true; i++; continue }
       if (ch === ',') { row.push(cell); cell=''; i++; continue }
-      if (ch === '\r') { const n = text[i+1]; row.push(cell); cell=''; rows.push(row); row=[]; i += (n==='\n')?2:1; continue }
+      if (ch === '\r') { const n = text[i+1]; row.push(cell); cell=''; rows.push(row); row=[]; i += (n === '\n') ? 2 : 1; continue }
       if (ch === '\n') { row.push(cell); cell=''; rows.push(row); row=[]; i++; continue }
       cell += ch; i++
     }
@@ -60,6 +62,7 @@ function parseCSV(text) {
   })
 }
 
+// ---------- UI helpers ----------
 function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear }) {
   return (
     <div>
@@ -82,13 +85,53 @@ function ToggleRail({ label, values, selected, onToggle, onSelectAll, onClear })
   )
 }
 
+const OPTIONAL_ORDER = ['goal','support','plays','emotions','quotes','roles','influences','barriers','evidence','opportunities']
+const FULL_ORDER = ['motivation','goal','support','plays','touchpoints','emotions','quotes','roles','influences','barriers','evidence','opportunities']
+
+function pickHighlightExtras(row, max = 3) {
+  if (!row) return [] // <- critical guard to prevent crashes on empty cells
+  const picks = []
+  for (const key of OPTIONAL_ORDER) {
+    const val = row[key]
+    const has =
+      Array.isArray(val) ? val.length > 0 :
+      typeof val === 'string' ? val.trim().length > 0 : false
+    if (has) picks.push(key)
+    if (picks.length >= max) break
+  }
+  return picks
+}
+
+const Section = ({ label, children }) => (<div className="meta"><strong>{label}:</strong>{children}</div>)
+const Chips = ({ items }) => (<div className="chips" style={{ marginTop: 6 }}>{items.map((t,i)=>(<span key={i} className="chip">{t}</span>))}</div>)
+const List  = ({ items, quote }) => (<ul className="list">{items.map((v,i)=>(<li key={i}>{quote ? <>&ldquo;{v}&rdquo;</> : v}</li>))}</ul>)
+
+function renderField(key, row) {
+  switch (key) {
+    case 'motivation': return row.motivation ? <p className="meta"><strong>Motivation:</strong> {row.motivation}</p> : null
+    case 'goal': return row.goal ? <p className="meta"><strong>Goal:</strong> {row.goal}</p> : null
+    case 'support': return row.support ? <p className="meta"><strong>Support:</strong> {row.support}</p> : null
+    case 'plays': return row.plays?.length ? <Section label="Plays"><List items={row.plays} /></Section> : null
+    case 'touchpoints': return row.touchpoints?.length ? <Section label="Touchpoints"><Chips items={row.touchpoints} /></Section> : null
+    case 'emotions': return row.emotions?.length ? <Section label="Emotions"><Chips items={row.emotions} /></Section> : null
+    case 'quotes': return row.quotes?.length ? <Section label="Quotes"><List items={row.quotes} quote /></Section> : null
+    case 'roles': return row.roles?.length ? <Section label="Roles / Stakeholders"><Chips items={row.roles} /></Section> : null
+    case 'influences': return row.influences?.length ? <Section label="Influences"><List items={row.influences} /></Section> : null
+    case 'barriers': return row.barriers?.length ? <Section label="Barriers / Risks"><List items={row.barriers} /></Section> : null
+    case 'evidence': return row.evidence?.length ? <Section label="Evidence / Proof Needed"><List items={row.evidence} /></Section> : null
+    case 'opportunities': return row.opportunities?.length ? <Section label="Opportunities (How we can win)"><List items={row.opportunities} /></Section> : null
+    default: return null
+  }
+}
+
 export default function App() {
-  const [viewMode, setViewMode] = useState('highlights')
+  const [viewMode, setViewMode] = useState('highlights') // 'highlights' | 'full'
   const [data, setData] = useState([])
   const [error, setError] = useState('')
   const [selectedStages, setSelectedStages] = useState([])
   const [selectedStakeholders, setSelectedStakeholders] = useState([])
 
+  // Load CSV (cache-busted)
   useEffect(() => {
     (async () => {
       try {
@@ -96,50 +139,82 @@ export default function App() {
         const gidPart = CSV_GID ? `${base.includes('?') ? '&' : '?'}single=true&gid=${CSV_GID}` : ''
         const bustPart = `${(base.includes('?') || gidPart) ? '&' : '?'}t=${Date.now()}`
         const url = `${base}${gidPart}${bustPart}`
+
         const res = await fetch(url, { cache: 'no-store' })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         let txt = await res.text()
         txt = stripBOM(txt)
+
         const rows = parseCSV(txt)
-        if (!rows.length) throw new Error('No rows parsed')
+        if (!rows.length) throw new Error('No rows parsed — check header row and that at least one data row exists in the published tab.')
+
         setData(rows)
         setSelectedStages([...new Set(rows.map(r => r.stage))])
         setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))])
-      } catch (e) { setError(e.message || String(e)) }
+      } catch (e) {
+        setError(e.message || String(e))
+      }
     })()
   }, [])
 
+  // Derive all stages/stakeholders dynamically (respect optional *Order columns)
   const allStages = useMemo(() => {
-    const seen = new Set(); const rows = [...data]
-    rows.sort((a,b)=> (a.stageOrder - b.stageOrder) || 0)
+    const seen = new Set()
+    const rows = [...data]
+    rows.sort((a, b) => (a.stageOrder - b.stageOrder) || 0)
     const list = []
-    for (const r of rows) { if (!r.stage) continue; if (!seen.has(r.stage)) { seen.add(r.stage); list.push(r.stage) } }
+    for (const r of rows) {
+      if (!r.stage) continue
+      if (!seen.has(r.stage)) {
+        seen.add(r.stage)
+        list.push(r.stage)
+      }
+    }
     return list
   }, [data])
 
   const allStakeholders = useMemo(() => {
-    const seen = new Set(); const rows = [...data]
-    rows.sort((a,b)=> (a.stakeholderOrder - b.stakeholderOrder) || 0)
+    const seen = new Set()
+    const rows = [...data]
+    rows.sort((a, b) => (a.stakeholderOrder - b.stakeholderOrder) || 0)
     const list = []
-    for (const r of rows) { if (!r.stakeholder) continue; if (!seen.has(r.stakeholder)) { seen.add(r.stakeholder); list.push(r.stakeholder) } }
+    for (const r of rows) {
+      if (!r.stakeholder) continue
+      if (!seen.has(r.stakeholder)) {
+        seen.add(r.stakeholder)
+        list.push(r.stakeholder)
+      }
+    }
     return list
   }, [data])
 
+  // Visible rows under current filters
   const visible = useMemo(() => {
-    return data.filter(d => selectedStages.includes(d.stage) && selectedStakeholders.includes(d.stakeholder))
+    return data.filter(d =>
+      selectedStages.includes(d.stage) &&
+      selectedStakeholders.includes(d.stakeholder)
+    )
   }, [data, selectedStages, selectedStakeholders])
 
+  // Which stages/stakeholders actually have any data under current filters
   const activeStages = useMemo(() => {
-    return selectedStages.filter(st => data.some(d => d.stage === st && selectedStakeholders.includes(d.stakeholder)))
+    return selectedStages.filter(st =>
+      data.some(d => d.stage === st && selectedStakeholders.includes(d.stakeholder))
+    )
   }, [data, selectedStages, selectedStakeholders])
 
   const activeStakeholders = useMemo(() => {
-    return selectedStakeholders.filter(sh => data.some(d => d.stakeholder === sh && selectedStages.includes(d.stage)))
+    return selectedStakeholders.filter(sh =>
+      data.some(d => d.stakeholder === sh && selectedStages.includes(d.stage))
+    )
   }, [data, selectedStages, selectedStakeholders])
 
+  // Logical grid behavior:
+  // if only one row OR only one column → omit empties on that axis
   const effectiveStages = activeStages.length === 1 ? activeStages : selectedStages
   const effectiveStakeholders = activeStakeholders.length === 1 ? activeStakeholders : selectedStakeholders
 
+  // stage → stakeholder → row map
   const byStage = useMemo(() => {
     const m = new Map()
     for (const st of effectiveStages) m.set(st, {})
@@ -152,53 +227,17 @@ export default function App() {
     return m
   }, [visible, effectiveStages, effectiveStakeholders])
 
-  const countsByStage = useMemo(() => {
-    const m = Object.fromEntries(allStages.map(s => [s, 0]))
-    for (const row of data) {
-      if (selectedStakeholders.includes(row.stakeholder) && m[row.stage] != null) {
-        m[row.stage] += 1
-      }
-    }
-    return m
-  }, [data, allStages, selectedStakeholders])
+  const gridStyle = {
+    gridTemplateColumns: effectiveStakeholders.map(() => 'minmax(300px, 1fr)').join(' ')
+  }
 
-  const gridStyle = { gridTemplateColumns: effectiveStakeholders.map(() => 'minmax(300px, 1fr)').join(' ') }
-  const toggle = (setArr) => (val) => setArr(curr => curr.includes(val) ? curr.filter(x => x !== val) : [...curr, val])
+  const toggle = (setArr) => (val) =>
+    setArr(curr => curr.includes(val) ? curr.filter(x => x !== val) : [...curr, val])
 
   if (error) return <div style={{ padding: 16, whiteSpace:'pre-wrap' }}>Error: {error}</div>
   if (!data.length) return <div style={{ padding: 16 }}>Loading…</div>
-  if (!allStages.length || !allStakeholders.length) return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
-
-  const OPTIONAL_ORDER = ['goal','support','plays','emotions','quotes','roles','influences','barriers','evidence','opportunities']
-
-  const Section = ({ label, children }) => (<div className="meta"><strong>{label}:</strong>{children}</div>)
-  const Chips = ({ items }) => (<div className="chips" style={{ marginTop: 6 }}>{items.map((t,i)=>(<span key={i} className="chip">{t}</span>))}</div>)
-  const List  = ({ items, quote }) => (<ul className="list">{items.map((v,i)=>(<li key={i}>{quote ? <>&ldquo;{v}&rdquo;</> : v}</li>))}</ul>)
-
-  const pickHighlightExtras = (row, max=3) => {
-    const picks=[]; for (const key of OPTIONAL_ORDER) {
-      const val = row[key]
-      const has = Array.isArray(val) ? val.length>0 : (typeof val==='string' ? val.trim().length>0 : false)
-      if (has) picks.push(key); if (picks.length>=max) break
-    } return picks
-  }
-
-  const renderField = (key, row) => {
-    switch (key) {
-      case 'motivation': return row.motivation ? <p className="meta"><strong>Motivation:</strong> {row.motivation}</p> : null
-      case 'goal': return row.goal ? <p className="meta"><strong>Goal:</strong> {row.goal}</p> : null
-      case 'support': return row.support ? <p className="meta"><strong>Support:</strong> {row.support}</p> : null
-      case 'plays': return row.plays?.length ? <Section label="Plays"><List items={row.plays} /></Section> : null
-      case 'touchpoints': return row.touchpoints?.length ? <Section label="Touchpoints"><Chips items={row.touchpoints} /></Section> : null
-      case 'emotions': return row.emotions?.length ? <Section label="Emotions"><Chips items={row.emotions} /></Section> : null
-      case 'quotes': return row.quotes?.length ? <Section label="Quotes"><List items={row.quotes} quote /></Section> : null
-      case 'roles': return row.roles?.length ? <Section label="Roles / Stakeholders"><Chips items={row.roles} /></Section> : null
-      case 'influences': return row.influences?.length ? <Section label="Influences"><List items={row.influences} /></Section> : null
-      case 'barriers': return row.barriers?.length ? <Section label="Barriers / Risks"><List items={row.barriers} /></Section> : null
-      case 'evidence': return row.evidence?.length ? <Section label="Evidence / Proof Needed"><List items={row.evidence} /></Section> : null
-      case 'opportunities': return row.opportunities?.length ? <Section label="Opportunities (How we can win)"><List items={row.opportunities} /></Section> : null
-      default: return null
-    }
+  if (!allStages.length || !allStakeholders.length) {
+    return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
   }
 
   return (
@@ -209,16 +248,24 @@ export default function App() {
       <JourneyRail
         stages={allStages}
         selectedStages={selectedStages}
-        counts={countsByStage}
+        counts={Object.fromEntries(allStages.map(s => [s, data.filter(r => r.stage === s && selectedStakeholders.includes(r.stakeholder)).length]))}
         onToggle={toggle(setSelectedStages)}
         onSelectAll={() => setSelectedStages(allStages)}
         onClear={() => setSelectedStages([])}
       />
 
-      {/* View Mode */}
+      {/* View Mode switch */}
       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
-        <button className={`btn ${viewMode === 'highlights' ? 'active' : ''}`} aria-pressed={viewMode === 'highlights'} onClick={()=>setViewMode('highlights')}>Highlights</button>
-        <button className={`btn ${viewMode === 'full' ? 'active' : ''}`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
+        <button
+          className={`btn ${viewMode === 'highlights' ? 'active' : ''}`}
+          aria-pressed={viewMode === 'highlights'}
+          onClick={()=>setViewMode('highlights')}
+        >Highlights</button>
+        <button
+          className={`btn ${viewMode === 'full' ? 'active' : ''}`}
+          aria-pressed={viewMode === 'full'}
+          onClick={()=>setViewMode('full')}
+        >Full</button>
       </div>
 
       <div className="controls">
@@ -241,23 +288,28 @@ export default function App() {
       </div>
 
       <div className="grid-wrap">
-        <div className="grid" style={gridTemplateColumnsStyle(effectiveStakeholders)}>
+        <div className="grid" style={gridStyle}>
           {effectiveStages.map(stage => {
             const rowMap = byStage.get(stage) || {}
             const stageHasAny = Object.keys(rowMap).length > 0
             if (!stageHasAny && effectiveStages.length === 1) return null
+
             return (
               <div key={stage} className="row" style={{ display:'contents' }}>
                 {effectiveStakeholders.map(sh => {
                   const row = rowMap[sh]
                   if (!row && effectiveStakeholders.length === 1) return null
-                  const picks = pickHighlightExtras(row, 3)
+
+                  // IMPORTANT: compute picks only if row exists
+                  const picks = row ? pickHighlightExtras(row, 3) : []
+
                   return (
                     <div key={`${stage}-${sh}`} className="card-cell">
                       {row ? (
                         <div className="card">
                           <h3>{row.stakeholder} @ {row.stage}</h3>
                           {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
+
                           {viewMode === 'highlights' ? (
                             <>
                               {renderField('motivation', row)}
@@ -268,8 +320,9 @@ export default function App() {
                             </>
                           ) : (
                             <>
-                              {['motivation','goal','support','plays','touchpoints','emotions','quotes','roles','influences','barriers','evidence','opportunities']
-                                .map(k => <div key={k}>{renderField(k, row)}</div>)}
+                              {FULL_ORDER.map(key => (
+                                <div key={key}>{renderField(key, row)}</div>
+                              ))}
                             </>
                           )}
                         </div>
@@ -286,8 +339,4 @@ export default function App() {
       </div>
     </div>
   )
-}
-
-function gridTemplateColumnsStyle(cols) {
-  return { gridTemplateColumns: cols.map(() => 'minmax(300px, 1fr)').join(' ') }
 }
