@@ -293,3 +293,51 @@ details[open] > .summary-line::after {
   display: flex;
   gap: 6px;
 }
+
+/* --- Prospects Bar --- */
+.prospects-bar { width: 100%; }
+
+/* --- Journey Rail: align perfectly with bars --- */
+.journey-rail {
+  position: relative;
+  padding: 8px 12px 14px;   /* 12px L/R must match ProspectsBar padL/padR */
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  overflow-x: auto;
+}
+.jr-track {
+  position: absolute;
+  top: 30px;
+  left: 12px;               /* match ProspectsBar padL */
+  right: 12px;              /* match ProspectsBar padR */
+  height: 2px;
+  background: var(--border);
+}
+.jr-steps {
+  position: relative;
+  display: flex;
+  justify-content: space-between;  /* equal spacing = same centers as bars */
+  gap: 0;
+  padding: 0 12px;                  /* match track & bar chart padding */
+}
+.jr-step {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+}
+.jr-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--border);
+  box-shadow: 0 0 0 2px var(--panel) inset;
+}
+.jr-step.active .jr-dot { background: var(--accent); }
+.jr-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
