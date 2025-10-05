@@ -37,6 +37,21 @@ body {
   white-space: nowrap;
   padding: 6px 0;
 }
+
+/* Right-align the All/Clear group */
+.rail { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 6px 0; }
+.rail-actions {
+  margin-left: auto;             /* pushes actions to the right */
+  display: flex;
+  gap: 6px;
+}
+
+/* Make All/Clear ~1pt smaller than normal buttons */
+.rail-actions .btn {
+  font-size: 13px;               /* roughly 1pt smaller than a 14px-ish base */
+}
+
+
 .btn {
   border: 1px solid var(--border);
   background: transparent;
