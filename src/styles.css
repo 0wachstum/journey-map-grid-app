@@ -241,3 +241,37 @@ body {
 /* Ensure row/cell placeholders don’t reintroduce stripes */
 .row, .card-cell, .empty { background: transparent !important; }
 
+/* 1) One scroller: header + grid live in the same wrapper */
+.grid-wrap {
+  position: relative;                 /* helps sticky layer above content */
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel) !important;/* unify background (no zebra) */
+  overflow-x: auto;                   /* horizontal scroll here */
+  overflow-y: visible;                /* vertical scroll = the page */
+}
+
+/* 2) Sticky header (sticks to viewport top) */
+.deck-header {
+  position: sticky !important;
+  top: 0;
+  z-index: 20;
+  background: var(--panel) !important;
+  border-bottom: 1px solid var(--border);
+}
+
+/* keep your existing padding tweaks */
+.deck-row { padding: 10px 12px 8px; }
+.deck-personas .rail { padding: 6px 0 6px 16px; }
+
+/* 3) Solid background for grid area to avoid the body gradient “stripes” */
+.grid {
+  display: grid;
+  grid-auto-rows: 1fr;
+  gap: 8px;
+  padding: 8px 8px 12px;
+  background: var(--panel) !important;
+}
+.row, .card-cell, .empty { background: transparent !important; }
+
+
