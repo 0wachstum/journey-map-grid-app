@@ -224,8 +224,10 @@ export default function App() {
                     {v}
                   </button>
                 ))}
+                <div className="rail-actions">
                 <button className="btn ghost" onClick={()=>setSelectedStakeholders(allStakeholders)}>All</button>
                 <button className="btn ghost" onClick={()=>setSelectedStakeholders([])}>Clear</button>
+                </div>
               </div>
             </div>
           </div>
