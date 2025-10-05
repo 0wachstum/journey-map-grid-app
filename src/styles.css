@@ -1,4 +1,3 @@
-
 :root {
   --bg: #0b0f14;
   --panel: #0f1726;
@@ -30,6 +29,7 @@ body {
   margin: 4px 0 6px;
 }
 
+/* Rail + actions */
 .rail {
   display: flex;
   gap: 8px;
@@ -37,25 +37,12 @@ body {
   white-space: nowrap;
   padding: 6px 0;
 }
-
-/* left spacing for selector buttons */
-.deck-personas .rail > :first-child {
-  margin-left: 10px;
-}
-
-/* Right-align the All/Clear group */
-.rail { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 6px 0; }
 .rail-actions {
-  margin-left: auto;             /* pushes actions to the right */
+  margin-left: auto;
   display: flex;
   gap: 6px;
 }
-
-/* Make All/Clear ~1pt smaller than normal buttons */
-.rail-actions .btn {
-  font-size: 13px;               /* roughly 1pt smaller than a 14px-ish base */
-}
-
+.rail-actions .btn { font-size: 13px; }
 
 .btn {
   border: 1px solid var(--border);
@@ -74,20 +61,19 @@ body {
   text-decoration: underline;
 }
 
-/* --- Shell: sticky header + scrollable cards --- */
+/* --- Single horizontal scroller for header + grid --- */
 .grid-wrap {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--panel);
-  overflow: hidden;                /* hide rounded corners overflow */
+  overflow-x: auto;        /* horizontal scroll lives here */
+  overflow-y: visible;     /* let the page handle vertical scroll */
 }
-.board {
-  max-height: 72vh;                /* make inner area scrollable */
-  overflow: auto;                  /* both axes */
-  position: relative;
+.table-inner {
+  min-width: 900px;        /* ensures scroll when too narrow */
 }
 
-/* Sticky header */
+/* Sticky header relative to the viewport */
 .deck-header {
   position: sticky;
   top: 0;
@@ -96,17 +82,14 @@ body {
   border-bottom: 1px solid var(--border);
 }
 .deck-row { padding: 10px 12px 8px; }
-.deck-personas { padding-top: 0; padding-bottom: 8px; }
+.deck-personas .rail { padding: 6px 0 6px 16px; }  /* extra left padding */
 
-/* Cards section */
-.cards-section { padding: 8px; }
-
-/* Grid */
+/* Cards grid */
 .grid {
   display: grid;
   grid-auto-rows: 1fr;
   gap: 8px;
-  min-width: 900px;               /* allow horizontal scroll */
+  padding: 8px 8px 12px;  /* bottom padding small & fixed */
 }
 .row { display: contents; }
 .card-cell { padding: 8px; background: transparent !important; }
@@ -186,8 +169,6 @@ body {
   row-gap: 8px;
   align-items: end;
 }
-
-/* Bars */
 .sd-bar {
   justify-self: center;
   width: 65%;
@@ -196,15 +177,11 @@ body {
   border-radius: 0;
   cursor: pointer;
 }
-
-/* Track */
 .sd-track {
   height: 2px;
   align-self: center;
   background: var(--border);
 }
-
-/* Steps */
 .sd-step {
   background: transparent;
   border: 0;

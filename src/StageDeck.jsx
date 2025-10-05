@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react'
 
 export default function StageDeck({
@@ -7,7 +6,6 @@ export default function StageDeck({
   counts = {},              // optional: real numbers per stage later
   onToggle = () => {},
 }) {
-  // Deterministic synthetic funnel if counts not provided
   const data = useMemo(() => {
     if (!stages || stages.length === 0) return []
     const hasReal = Object.keys(counts || {}).some(k => Number.isFinite(counts[k]))
