@@ -38,6 +38,10 @@ body {
   padding: 6px 0;
 }
 
+.deck-personas .rail > :first-child {
+  margin-left: 16px;
+}
+
 /* Right-align the All/Clear group */
 .rail { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 6px 0; }
 .rail-actions {
