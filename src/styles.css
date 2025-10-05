@@ -1,3 +1,4 @@
+
 :root {
   --bg: #0b0f14;
   --panel: #0f1726;
@@ -21,17 +22,6 @@ body {
 .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
 .h1 { font-size: 28px; font-weight: 800; margin: 0 0 16px; }
 
-.controls {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
-  background: rgba(16,22,33,.5);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
-}
-
 .section-title {
   font-size: 12px;
   text-transform: uppercase;
@@ -47,7 +37,6 @@ body {
   white-space: nowrap;
   padding: 6px 0;
 }
-
 .btn {
   border: 1px solid var(--border);
   background: transparent;
@@ -65,24 +54,44 @@ body {
   text-decoration: underline;
 }
 
+/* --- Shell: sticky header + scrollable cards --- */
 .grid-wrap {
-  overflow: auto;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--panel);
+  overflow: hidden;                /* hide rounded corners overflow */
 }
+.board {
+  max-height: 72vh;                /* make inner area scrollable */
+  overflow: auto;                  /* both axes */
+  position: relative;
+}
+
+/* Sticky header */
+.deck-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.deck-row { padding: 10px 12px 8px; }
+.deck-personas { padding-top: 0; padding-bottom: 8px; }
+
+/* Cards section */
+.cards-section { padding: 8px; }
+
+/* Grid */
 .grid {
   display: grid;
   grid-auto-rows: 1fr;
   gap: 8px;
-  padding: 8px;
-  min-width: 900px;
+  min-width: 900px;               /* allow horizontal scroll */
 }
 .row { display: contents; }
+.card-cell { padding: 8px; background: transparent !important; }
 
-.card-cell { padding: 8px; }
-
-/* --- Card styling --- */
+/* Card */
 .card {
   padding: 14px 16px;
   border-radius: 12px;
@@ -91,37 +100,11 @@ body {
   box-shadow: none;
   color: var(--text);
 }
-.card h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-}
+.card h3 { margin: 0; font-size: 14px; font-weight: 700; }
 .kpi { color: var(--muted); font-size: 12px; }
 .meta { color: var(--muted); font-size: 12px; }
 
-/* --- Expand/collapse --- */
-details { margin-top: 4px; border: 0; padding: 0; background: transparent; }
-details summary { cursor: pointer; color: var(--text); background: transparent; }
-.card summary::-webkit-details-marker { display: none; }
-
-.summary-line {
-  list-style: none;
-  cursor: pointer;
-  width: 100%;
-  height: 18px;
-  position: relative;
-}
-.summary-line::after {
-  content: "▼";
-  font-size: 16px;
-  display: inline-block;
-  color: var(--muted);
-}
-details[open] > .summary-line::after {
-  content: "▲";
-}
-
-/* --- Empty placeholder --- */
+/* Empty */
 .empty {
   border: 1px dashed var(--border);
   border-radius: 12px;
@@ -131,9 +114,10 @@ details[open] > .summary-line::after {
   justify-content: center;
   color: var(--muted);
   font-size: 12px;
+  background: transparent !important;
 }
 
-/* --- Chips --- */
+/* Chips */
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -149,30 +133,15 @@ details[open] > .summary-line::after {
   color: var(--muted);
 }
 
-/* --- Stack spacing inside cards --- */
+/* Spacing */
 .card > * + * { margin-top: 8px; }
-
-/* KPI smaller + subtle */
-.card .kpi {
-  font-size: 13px;
-  opacity: .8;
-}
-
-/* Meta paragraphs */
-.card .meta {
-  margin: 6px 0 0;
-  line-height: 1.35;
-}
+.card .kpi { font-size: 13px; opacity: .8; }
+.card .meta { margin: 6px 0 0; line-height: 1.35; }
 .card .meta strong { font-weight: 600; }
-
-/* Lists */
-.card .list {
-  margin: 6px 0 0 16px;
-  padding: 0;
-}
+.card .list { margin: 6px 0 0 16px; padding: 0; }
 .card .list li { margin: 4px 0; }
 
-/* --- Safety overrides (force dark, suppress light UA defaults) --- */
+/* Force dark */
 .card, .card *, .card-cell, .grid, .grid-wrap,
 .card details, .card summary, .card .summary-line {
   background: transparent;
@@ -187,159 +156,6 @@ details[open] > .summary-line::after {
   border-color: var(--border) !important;
   color: var(--muted) !important;
 }
-
-
-/* --- Journey Rail --- */
-.journey-rail {
-  position: relative;
-  margin-bottom: 12px;
-  padding: 12px 12px 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: rgba(16,22,33,.5);
-  overflow-x: auto;
-}
-.jr-track {
-  position: absolute;
-  top: 28px;
-  left: 16px;
-  right: 80px;
-  height: 2px;
-  background: var(--border);
-}
-.jr-steps {
-  position: relative;
-  display: flex;
-  gap: 20px;
-  padding-right: 96px;
-}
-.jr-step {
-  background: transparent;
-  border: 0;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: 6px;
-}
-.jr-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--border);
-  box-shadow: 0 0 0 2px var(--panel) inset;
-}
-.jr-step.active .jr-dot { background: var(--accent); }
-.jr-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
-.jr-count { font-size: 11px; color: var(--muted); }
-.jr-actions {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  gap: 6px;
-}
-
-/* --- Prospects Bar --- */
-.prospects-bar { width: 100%; }
-
-/* --- Journey Rail (inside grid-wrap, full width) --- */
-.journey-rail {
-  position: relative;
-  padding: 8px 8px 14px;
-  border: 0;                       /* no outer border; grid-wrap has it */
-  border-radius: 12px;
-  background: transparent;         /* blend with grid-wrap */
-  overflow-x: auto;
-}
-.jr-track {
-  position: absolute;
-  top: 30px;
-  left: 12px;
-  right: 12px;                     /* span full width inside wrapper */
-  height: 2px;
-  background: var(--border);
-}
-.jr-steps {
-  position: relative;
-  display: flex;
-  gap: 20px;
-  padding-right: 96px;             /* room for All/Clear actions */
-}
-.jr-step {
-  background: transparent;
-  border: 0;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: 6px;
-}
-.jr-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--border);
-  box-shadow: 0 0 0 2px var(--panel) inset;
-}
-.jr-step.active .jr-dot { background: var(--accent); }
-.jr-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
-.jr-actions {
-  position: absolute;
-  top: 4px;
-  right: 8px;
-  display: flex;
-  gap: 6px;
-}
-
-/* --- Prospects Bar --- */
-.prospects-bar { width: 100%; }
-
-/* --- Journey Rail: align perfectly with bars --- */
-.journey-rail {
-  position: relative;
-  padding: 8px 12px 14px;   /* 12px L/R must match ProspectsBar padL/padR */
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  overflow-x: auto;
-}
-.jr-track {
-  position: absolute;
-  top: 30px;
-  left: 12px;               /* match ProspectsBar padL */
-  right: 12px;              /* match ProspectsBar padR */
-  height: 2px;
-  background: var(--border);
-}
-.jr-steps {
-  position: relative;
-  display: flex;
-  justify-content: space-between;  /* equal spacing = same centers as bars */
-  gap: 0;
-  padding: 0 12px;                  /* match track & bar chart padding */
-}
-.jr-step {
-  background: transparent;
-  border: 0;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: 6px;
-}
-.jr-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--border);
-  box-shadow: 0 0 0 2px var(--panel) inset;
-}
-.jr-step.active .jr-dot { background: var(--accent); }
-.jr-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
 
 /* --- Stage Deck (bars + aligned rail) --- */
 .stage-deck { width: 100%; }
@@ -361,7 +177,7 @@ details[open] > .summary-line::after {
   cursor: pointer;
 }
 
-/* Track line */
+/* Track */
 .sd-track {
   height: 2px;
   align-self: center;

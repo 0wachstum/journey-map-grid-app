@@ -1,5 +1,4 @@
 
-// src/App.jsx
 import { useEffect, useMemo, useState } from 'react'
 import StageDeck from './StageDeck.jsx'
 
@@ -19,14 +18,14 @@ function parseCSVRaw(text) {
   while (i < text.length) {
     const ch = text[i]
     if (inQuotes) {
-      if (ch === '"') {
+      if (ch === '\"') {
         const next = text[i + 1]
-        if (next === '"') { cell += '"'; i += 2; continue }
+        if (next === '\"') { cell += '\"'; i += 2; continue }
         inQuotes = false; i++; continue
       }
       cell += ch; i++; continue
     } else {
-      if (ch === '"') { inQuotes = true; i++; continue }
+      if (ch === '\"') { inQuotes = true; i++; continue }
       if (ch === ',') { row.push(cell); cell = ''; i++; continue }
       if (ch === '\r') { const n = text[i + 1]; row.push(cell); cell=''; rows.push(row); row=[]; i += (n === '\n') ? 2 : 1; continue }
       if (ch === '\n') { row.push(cell); cell=''; rows.push(row); row=[]; i++; continue }
@@ -135,7 +134,7 @@ export default function App() {
     })()
   }, [])
 
-  // Derive dynamic lists (respecting optional *Order)
+  // Derive dynamic lists (respect ordering hints)
   const allStages = useMemo(() => {
     const seen = new Set(); const rows = [...data]
     rows.sort((a,b)=> (a.stageOrder - b.stageOrder) || 0)
@@ -157,18 +156,19 @@ export default function App() {
     return data.filter(d => selectedStages.includes(d.stage) && selectedStakeholders.includes(d.stakeholder))
   }, [data, selectedStages, selectedStakeholders])
 
-  // Active subsets
+  // Prune empty rows/columns ALWAYS
+  // a) Keep a stage only if at least one selected stakeholder has data for it
   const activeStages = useMemo(() => {
-    return selectedStages.filter(st => data.some(d => d.stage === st && selectedStakeholders.includes(d.stakeholder)))
-  }, [data, selectedStages, selectedStakeholders])
+    return selectedStages.filter(st => visible.some(d => d.stage === st))
+  }, [visible, selectedStages])
 
+  // b) Keep a stakeholder only if at least one selected stage has data for it
   const activeStakeholders = useMemo(() => {
-    return selectedStakeholders.filter(sh => data.some(d => d.stakeholder === sh && selectedStages.includes(d.stage)))
-  }, [data, selectedStages, selectedStakeholders])
+    return selectedStakeholders.filter(sh => visible.some(d => d.stakeholder === sh))
+  }, [visible, selectedStakeholders])
 
-  // Grid behavior
-  const effectiveStages = activeStages.length === 1 ? activeStages : selectedStages
-  const effectiveStakeholders = activeStakeholders.length === 1 ? activeStakeholders : selectedStakeholders
+  const effectiveStages = activeStages
+  const effectiveStakeholders = activeStakeholders
 
   // stage → stakeholder → row
   const byStage = useMemo(() => {
@@ -198,84 +198,82 @@ export default function App() {
         <button className={`btn ${viewMode === 'full' ? 'active' : ''}`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
       </div>
 
-      {/* DECK → STAKEHOLDERS → CARDS */}
+      {/* Sticky header + scrollable cards */}
       <div className="grid-wrap">
+        <div className="board">
+          {/* HEADER (sticky) */}
+          <div className="deck-header">
+            <div className="deck-row deck-bars">
+              <StageDeck
+                stages={allStages}
+                selectedStages={selectedStages}
+                onToggle={toggle(setSelectedStages)}
+              />
+            </div>
 
-        {/* 1) Stage Deck (bars + aligned rail) */}
-        <div style={{ padding: '10px 12px 8px' }}>
-          <StageDeck
-            stages={allStages}
-            selectedStages={selectedStages}
-            onToggle={toggle(setSelectedStages)}
-          />
-        </div>
-
-        {/* 2) Stakeholders */}
-        <div style={{ padding: '0 12px 8px' }}>
-          <div className="section-title">Stakeholders</div>
-          <div className="rail">
-            {allStakeholders.map(v => (
-              <button
-                key={v}
-                className={`btn ${selectedStakeholders.includes(v) ? 'active' : ''}`}
-                aria-pressed={selectedStakeholders.includes(v)}
-                onClick={() => toggle(setSelectedStakeholders)(v)}
-              >
-                {v}
-              </button>
-            ))}
-            <button className="btn ghost" onClick={()=>setSelectedStakeholders(allStakeholders)}>All</button>
-            <button className="btn ghost" onClick={()=>setSelectedStakeholders([])}>Clear</button>
+            <div className="deck-row deck-personas">
+              <div className="section-title">Stakeholders</div>
+              <div className="rail">
+                {allStakeholders.map(v => (
+                  <button
+                    key={v}
+                    className={`btn ${selectedStakeholders.includes(v) ? 'active' : ''}`}
+                    aria-pressed={selectedStakeholders.includes(v)}
+                    onClick={() => toggle(setSelectedStakeholders)(v)}
+                  >
+                    {v}
+                  </button>
+                ))}
+                <button className="btn ghost" onClick={()=>setSelectedStakeholders(allStakeholders)}>All</button>
+                <button className="btn ghost" onClick={()=>setSelectedStakeholders([])}>Clear</button>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* 3) Cards */}
-        <div className="grid" style={gridStyle}>
-          {effectiveStages.map(stage => {
-            const rowMap = byStage.get(stage) || {}
-            const stageHasAny = Object.keys(rowMap).length > 0
-            if (!stageHasAny && effectiveStages.length === 1) return null
+          {/* CARDS (scrollable area) */}
+          <div className="cards-section">
+            <div className="grid" style={gridStyle}>
+              {effectiveStages.map(stage => {
+                const rowMap = byStage.get(stage) || {}
+                return (
+                  <div key={stage} className="row" style={{ display:'contents' }}>
+                    {effectiveStakeholders.map(sh => {
+                      const row = rowMap[sh]
+                      const picks = row ? pickHighlightExtras(row, 3) : []
+                      return (
+                        <div key={`${stage}-${sh}`} className="card-cell">
+                          {row ? (
+                            <div className="card">
+                              <h3>{row.stakeholder} @ {row.stage}</h3>
+                              {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
 
-            return (
-              <div key={stage} className="row" style={{ display:'contents' }}>
-                {effectiveStakeholders.map(sh => {
-                  const row = rowMap[sh]
-                  if (!row && effectiveStakeholders.length === 1) return null
-
-                  const picks = row ? pickHighlightExtras(row, 3) : []
-
-                  return (
-                    <div key={`${stage}-${sh}`} className="card-cell">
-                      {row ? (
-                        <div className="card">
-                          <h3>{row.stakeholder} @ {row.stage}</h3>
-                          {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
-
-                          {viewMode === 'highlights' ? (
-                            <>
-                              {renderField('motivation', row)}
-                              {renderField('touchpoints', row)}
-                              {OPTIONAL_ORDER
-                                .filter(k => picks.includes(k))
-                                .map(k => <div key={k}>{renderField(k, row)}</div>)}
-                            </>
+                              {viewMode === 'highlights' ? (
+                                <>
+                                  {renderField('motivation', row)}
+                                  {renderField('touchpoints', row)}
+                                  {OPTIONAL_ORDER
+                                    .filter(k => picks.includes(k))
+                                    .map(k => <div key={k}>{renderField(k, row)}</div>)}
+                                </>
+                              ) : (
+                                <>
+                                  {FULL_ORDER.map(key => (
+                                    <div key={key}>{renderField(key, row)}</div>
+                                  ))}
+                                </>
+                              )}
+                            </div>
                           ) : (
-                            <>
-                              {FULL_ORDER.map(key => (
-                                <div key={key}>{renderField(key, row)}</div>
-                              ))}
-                            </>
+                            <div className="empty">—</div>
                           )}
                         </div>
-                      ) : (
-                        <div className="empty">—</div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })}
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

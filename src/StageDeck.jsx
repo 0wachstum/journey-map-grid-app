@@ -1,5 +1,4 @@
 
-// src/StageDeck.jsx
 import React, { useMemo } from 'react'
 
 export default function StageDeck({
@@ -29,12 +28,11 @@ export default function StageDeck({
 
   return (
     <div className="stage-deck">
-      {/* Grid with shared columns for bars (row 1) and steps (row 2) */}
       <div
         className="sd-grid"
         style={{ gridTemplateColumns: `repeat(${stages.length || 1}, 1fr)` }}
       >
-        {/* Row 1: Bars (square corners, no inline numbers; value shown on hover via title) */}
+        {/* Row 1: Bars */}
         {data.map((d, idx) => {
           const hPct = maxVal > 0 ? (d.value / maxVal) * 100 : 0
           return (
@@ -58,10 +56,10 @@ export default function StageDeck({
           )
         })}
 
-        {/* Track line under bars, above dots */}
+        {/* Track */}
         <div className="sd-track" style={{ gridColumn: `1 / -1`, gridRow: 2 }} />
 
-        {/* Row 2: Steps (dot + label) */}
+        {/* Row 2: Steps */}
         {stages.map((st, idx) => {
           const active = selectedStages.includes(st)
           return (
