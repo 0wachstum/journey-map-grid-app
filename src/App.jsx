@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import StageDeck from './StageDeck.jsx'
 
 // Google Sheets CSV
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
+// old_link const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
+const CSV_URL = '/api/csv'; // now served by Vercel from your OneDrive source
 const CSV_GID = '' // optional tab gid
 
 function stripBOM(text) { return text && text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text }
