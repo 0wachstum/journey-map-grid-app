@@ -248,91 +248,130 @@ export default function App() {
   if (!data.length) return <div style={{ padding: 16 }}>Loading…</div>
   if (!allStages.length || !allStakeholders.length) return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
 
-  return (
-    <div className="container">
-      {/* Highlights / Full switch */}
-      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
-        <button className={`btn ${viewMode === 'highlights' ? 'active' : ''}`} aria-pressed={viewMode === 'highlights'} onClick={()=>setViewMode('highlights')}>Highlights</button>
-        <button className={`btn ${viewMode === 'full' ? 'active' : ''}`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
-      </div>
+  return return (
+  <div className="container">
+    {/* Build marker (optional) */}
+    {/* <div style={{fontSize:12, color:'var(--muted)', marginBottom:8}}>Build: APP-verify</div> */}
 
-      {/* Sticky header with inline bar chart + stage rail */}
-      <div className="grid-wrap">
-        <div className="table-inner">
-          <div className="deck-header">
-            <div className="deck-row deck-bars">
-              <SmallBarChart
-                stages={allStages}
-                counts={stageCounts}
-                selectedStages={selectedStages}
-                onToggle={(s) => toggle(setSelectedStages)(s)}
-              />
+    {/* Highlights / Full switch */}
+    <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
+      <button
+        className={`btn ${viewMode === 'highlights' ? 'active' : ''}`}
+        aria-pressed={viewMode === 'highlights'}
+        onClick={() => setViewMode('highlights')}
+      >
+        Highlights
+      </button>
+      <button
+        className={`btn ${viewMode === 'full' ? 'active' : ''}`}
+        aria-pressed={viewMode === 'full'}
+        onClick={() => setViewMode('full')}
+      >
+        Full
+      </button>
+    </div>
+
+    {/* Sticky header with inline bar chart + stage rail */}
+    <div className="grid-wrap">
+      <div className="table-inner">
+        <div className="deck-header">
+          <div className="deck-row deck-bars">
+            <SmallBarChart
+              stages={allStages}
+              counts={stageCounts}
+              selectedStages={selectedStages}
+              onToggle={(s) =>
+                setSelectedStages(curr =>
+                  curr.includes(s) ? curr.filter(x => x !== s) : [...curr, s]
+                )
+              }
+            />
+          </div>
+
+          <div className="deck-row deck-stages">
+            <div className="rail">
+              {allStages.map(s => (
+                <button
+                  key={s}
+                  className={`btn ${selectedStages.includes(s) ? 'active' : ''}`}
+                  aria-pressed={selectedStages.includes(s)}
+                  onClick={() =>
+                    setSelectedStages(curr =>
+                      curr.includes(s) ? curr.filter(x => x !== s) : [...curr, s]
+                    )
+                  }
+                >
+                  {s}
+                </button>
+              ))}
             </div>
+          </div>
 
-            <div className="deck-row deck-stages">
-              <StageRail
-                stages={allStages}
-                selectedStages={selectedStages}
-                onToggle={(s) => toggle(setSelectedStages)(s)}
-              />
-            </div>
-
-            <div className="deck-row deck-personas">
-              <div className="section-title">Stakeholders</div>
-              <div className="rail">
-                {allStakeholders.map(v => (
-                  <button
-                    key={v}
-                    className={`btn ${selectedStakeholders.includes(v) ? 'active' : ''}`}
-                    aria-pressed={selectedStakeholders.includes(v)}
-                    onClick={() => toggle(setSelectedStakeholders)(v)}
-                  >
-                    {v}
-                  </button>
-                ))}
-                <div className="rail-actions">
-                  <button className="btn ghost" onClick={()=>setSelectedStakeholders(allStakeholders)}>All</button>
-                  <button className="btn ghost" onClick={()=>setSelectedStakeholders([])}>Clear</button>
-                </div>
+          <div className="deck-row deck-personas">
+            <div className="section-title">Stakeholders</div>
+            <div className="rail">
+              {allStakeholders.map(v => (
+                <button
+                  key={v}
+                  className={`btn ${selectedStakeholders.includes(v) ? 'active' : ''}`}
+                  aria-pressed={selectedStakeholders.includes(v)}
+                  onClick={() =>
+                    setSelectedStakeholders(curr =>
+                      curr.includes(v) ? curr.filter(x => x !== v) : [...curr, v]
+                    )
+                  }
+                >
+                  {v}
+                </button>
+              ))}
+              <div className="rail-actions">
+                <button className="btn ghost" onClick={() => setSelectedStakeholders(allStakeholders)}>All</button>
+                <button className="btn ghost" onClick={() => setSelectedStakeholders([])}>Clear</button>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Cards */}
-          <div className="grid" style={gridStyle}>
-            {effectiveStages.map(stage => {
-              const rowMap = byStage.get(stage) || {}
-              return (
-                <div key={stage} className="row" style={{ display:'contents' }}>
-                  {effectiveStakeholders.map(sh => {
-                    const row = rowMap[sh]
-                    return (
-                      <div key={`${stage}-${sh}`} className="card-cell">
-                        {row ? (
-                          <div className="card">
-                            <h3>{row.stakeholder} @ {row.stage}</h3>
-                            {viewMode === 'highlights' ? (
-                              <>
-                                {HIGHLIGHT_FIELDS.map(key => <div key={key}>{renderField(key, row)}</div>)}
-                              </>
-                            ) : (
-                              <>
-                                {FULL_FIELDS.map(key => <div key={key}>{renderField(key, row)}</div>)}
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="empty">—</div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            })}
-          </div>
+        {/* Cards */}
+        <div className="grid" style={gridStyle}>
+          {effectiveStages.map(stage => {
+            const rowMap = byStage.get(stage) || {}
+            return (
+              <div key={stage} className="row" style={{ display:'contents' }}>
+                {effectiveStakeholders.map(sh => {
+                  const row = rowMap[sh]
+                  return (
+                    <div key={`${stage}-${sh}`} className="card-cell">
+                      {row ? (
+                        <div className="card">
+                          <h3>{row.stakeholder} @ {row.stage}</h3>
+                          {viewMode === 'highlights' ? (
+                            <>
+                              {['motivation','emotions','barriers','opportunities','quotes'].map(key => (
+                                <div key={key}>{renderField(key, row)}</div>
+                              ))}
+                            </>
+                          ) : (
+                            <>
+                              {['motivation','goal','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore'].map(key => (
+                                <div key={key}>{renderField(key, row)}</div>
+                              ))}
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="empty">—</div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
-  )
+  </div>
+)
+
 }
