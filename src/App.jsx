@@ -8,7 +8,7 @@ const CSV_GID = ''
 
 // View logic
 // Highlights: KPI first (chips), then Motivation (break), Emotions (chips), Barriers, Opportunities, Quotes
-const HIGHLIGHT_FIELDS = ['kpi','motivation','emotions','barriers','opportunities','quotes']
+const HIGHLIGHT_FIELDS = ['motivation','emotions','quotes']
 // Full: everything (Evidence removed), with Touchpoints included and Signals renamed in render
 const FULL_FIELDS = ['kpi','motivation','goal','support','touchpoints','emotions','barriers','opportunities','quotes','signals','satisfactionScore']
 
