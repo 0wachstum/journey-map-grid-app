@@ -1,17 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 
-// --- Build marker (optional; helps verify deploys) ---
-const BUILD_TAG = 'APP-2025-10-09T17:25';
+// --- Build marker (helps verify deploys) ---
+const BUILD_TAG = 'APP-2025-10-09T17:38'
 
 // ===== CONFIG =====
-// Google Sheets “Publish to web” CSV (leave CSV_GID empty unless you target a specific tab)
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
-const CSV_GID = ''
+const CSV_GID = '' // leave empty unless targeting a specific tab
 
 // View logic
-// Highlights: (KPI removed), per your last change
 const HIGHLIGHT_FIELDS = ['motivation','emotions','barriers','opportunities','quotes']
-// Full: KPI appears AFTER Opportunities; includes Touchpoints; Evidence omitted
 const FULL_FIELDS = ['motivation','goal','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore']
 
 // ===== CSV parsing =====
@@ -63,14 +60,12 @@ function parseCSV(text) {
       signals:       semi(get(cells,'Signals')),      // renders as “Survey Input”
       touchpoints:   semi(get(cells,'Touchpoints')),
 
-      kpi:           semi(get(cells,'KPI')),          // chips (single/multiple)
+      kpi:           semi(get(cells,'KPI')),          // chips
       emotions:      semi(get(cells,'Emotions')),
       quotes:        semi(get(cells,'Quotes')),
 
-      // Evidence intentionally ignored (not rendered)
       satisfactionScore: (get(cells,'SatisfactionScore') || '').trim(),
 
-      // Optional ordering hints (ignored if absent)
       stageOrder:       Number(get(cells,'StageOrder') || Number.POSITIVE_INFINITY),
       stakeholderOrder: Number(get(cells,'StakeholderOrder') || Number.POSITIVE_INFINITY),
     }
@@ -171,10 +166,10 @@ function StageRail({ stages, selectedStages, onToggle }) {
 // ===== Main App =====
 export default function App() {
   const [viewMode, setViewMode] = useState('highlights') // 'highlights' | 'full'
-  const [data, setData] = useState([])
+  const [data, setData] = useState<string[]>([])
   const [error, setError] = useState('')
-  const [selectedStages, setSelectedStages] = useState([])
-  const [selectedStakeholders, setSelectedStakeholders] = useState([])
+  const [selectedStages, setSelectedStages] = useState<string[]>([])
+  const [selectedStakeholders, setSelectedStakeholders] = useState<string[]>([])
 
   useEffect(() => {
     console.log('Loaded build:', BUILD_TAG)
@@ -193,63 +188,63 @@ export default function App() {
         setData(rows)
         setSelectedStages([...new Set(rows.map(r => r.stage))])
         setSelectedStakeholders([...new Set(rows.map(r => r.stakeholder))])
-      } catch (e) { setError(e.message || String(e)) }
+      } catch (e) { setError((e && (e as any).message) || String(e)) }
     })()
   }, [])
 
   // Stage/Stakeholder lists (respect optional ordering hints)
   const allStages = useMemo(() => {
-    const seen = new Set(); const rows = [...data]
+    const seen = new Set<string>(); const rows: any[] = [...(data as any[])]
     rows.sort((a,b)=> (a.stageOrder - b.stageOrder) || 0)
-    const list = []
+    const list: string[] = []
     for (const r of rows) { if (!r.stage) continue; if (!seen.has(r.stage)) { seen.add(r.stage); list.push(r.stage) } }
     return list
   }, [data])
   const allStakeholders = useMemo(() => {
-    const seen = new Set(); const rows = [...data]
+    const seen = new Set<string>(); const rows: any[] = [...(data as any[])]
     rows.sort((a,b)=> (a.stakeholderOrder - b.stakeholderOrder) || 0)
-    const list = []
+    const list: string[] = []
     for (const r of rows) { if (!r.stakeholder) continue; if (!seen.has(r.stakeholder)) { seen.add(r.stakeholder); list.push(r.stakeholder) } }
     return list
   }, [data])
 
   // Visible rows under current filters
   const visible = useMemo(() => {
-    return data.filter(d => selectedStages.includes(d.stage) && selectedStakeholders.includes(d.stakeholder))
+    return (data as any[]).filter(d => selectedStages.includes(d.stage) && selectedStakeholders.includes(d.stakeholder))
   }, [data, selectedStages, selectedStakeholders])
 
   // Prune empty rows/columns (always)
-  const activeStages = useMemo(() => selectedStages.filter(st => visible.some(d => d.stage === st)), [visible, selectedStages])
-  const activeStakeholders = useMemo(() => selectedStakeholders.filter(sh => visible.some(d => d.stakeholder === sh)), [visible, selectedStakeholders])
+  const activeStages = useMemo(() => selectedStages.filter(st => (visible as any[]).some(d => d.stage === st)), [visible, selectedStages])
+  const activeStakeholders = useMemo(() => selectedStakeholders.filter(sh => (visible as any[]).some(d => d.stakeholder === sh)), [visible, selectedStakeholders])
 
   const effectiveStages = activeStages
   const effectiveStakeholders = activeStakeholders
 
   // stage → stakeholder → row
   const byStage = useMemo(() => {
-    const m = new Map()
+    const m = new Map<string, Record<string, any>>()
     for (const st of effectiveStages) m.set(st, {})
-    for (const row of visible) {
+    for (const row of (visible as any[])) {
       if (!effectiveStages.includes(row.stage)) continue
       if (!effectiveStakeholders.includes(row.stakeholder)) continue
       if (!m.has(row.stage)) m.set(row.stage, {})
-      m.get(row.stage)[row.stakeholder] = row
+      m.get(row.stage)![row.stakeholder] = row
     }
     return m
   }, [visible, effectiveStages, effectiveStakeholders])
 
   const gridStyle = { gridTemplateColumns: effectiveStakeholders.map(() => 'minmax(300px, 1fr)').join(' ') }
-  const toggle = (setArr) => (val) => setArr(curr => curr.includes(val) ? curr.filter(x => x !== val) : [...curr, val])
+  const toggle = (setArr) => (val) => setArr((curr: string[]) => curr.includes(val) ? curr.filter(x => x !== val) : [...curr, val])
 
   // Simple counts for the header chart
   const stageCounts = useMemo(() => {
-    const m = {}; for (const s of allStages) m[s] = 0
-    for (const r of data) { if (r.stage && m.hasOwnProperty(r.stage)) m[r.stage]++ }
+    const m: Record<string, number> = {}; for (const s of allStages) m[s] = 0
+    for (const r of (data as any[])) { if (r.stage && Object.prototype.hasOwnProperty.call(m, r.stage)) m[r.stage]++ }
     return m
   }, [data, allStages])
 
   if (error) return <div style={{ padding: 16, whiteSpace:'pre-wrap' }}>Error: {error}</div>
-  if (!data.length) return <div style={{ padding: 16 }}>Loading…</div>
+  if (!(data as any[]).length) return <div style={{ padding: 16 }}>Loading…</div>
   if (!allStages.length || !allStakeholders.length) return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
 
   return (
