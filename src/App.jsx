@@ -81,7 +81,7 @@ function renderField(key, row) {
     case 'goal':       return row.goal       ? <p className="meta"><strong>Goal:</strong> {row.goal}</p> : null
     case 'support':    return row.support    ? <p className="meta"><strong>Support:</strong> {row.support}</p> : null
 
-    case 'barriers':      return row.barriers?.length      ? <Section label="NEW Barriers"><List items={row.barriers} /></Section> : null
+    case 'barriers':      return row.barriers?.length      ? <Section label="Barriers"><List items={row.barriers} /></Section> : null
     case 'opportunities': return row.opportunities?.length ? <Section label="Opportunities"><List items={row.opportunities} /></Section> : null
     case 'signals':       return row.signals?.length       ? <Section label="Signals"><Chips items={row.signals} /></Section> : null
 
