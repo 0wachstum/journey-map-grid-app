@@ -10,7 +10,7 @@ const CSV_GID = ''
 // Highlights: KPI first (chips), then Motivation (break), Emotions (chips), Barriers, Opportunities, Quotes
 const HIGHLIGHT_FIELDS = ['motivation','emotions','quotes']
 // Full: everything (Evidence removed), with Touchpoints included and Signals renamed in render
-const FULL_FIELDS = ['motivation','goal','support','touchpoints','emotions','barriers','kpi','opportunities','quotes','signals','satisfactionScore']
+const FULL_FIELDS = ['motivation','goal','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore']
 
 // ===== CSV parsing =====
 function stripBOM(text) {
