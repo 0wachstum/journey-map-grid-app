@@ -15,11 +15,22 @@ body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
   color: var(--text);
-  background: var(--bg); /* was the gradient */
+  background: linear-gradient(180deg, #0b0f14 0%, #0d1524 100%);
 }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
 .h1 { font-size: 28px; font-weight: 800; margin: 0 0 16px; }
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  background: rgba(16,22,33,.5);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
 
 .section-title {
   font-size: 12px;
@@ -29,10 +40,10 @@ body {
   margin: 4px 0 6px;
 }
 
-/* Rail + actions */
 .rail {
   display: flex;
   gap: 8px;
+  overflow-x: auto;
   white-space: nowrap;
   padding: 6px 0;
 }
@@ -40,8 +51,8 @@ body {
   margin-left: auto;
   display: flex;
   gap: 6px;
+  align-items: center;
 }
-.rail-actions .btn { font-size: 13px; }
 
 .btn {
   border: 1px solid var(--border);
@@ -58,41 +69,40 @@ body {
   border-color: transparent;
   color: var(--muted);
   text-decoration: underline;
+  font-size: 11px; /* slightly smaller per earlier request */
 }
 
-/* --- Single horizontal scroller for header + grid --- */
 .grid-wrap {
+  overflow: auto;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--panel);
-  overflow-y: visible;     /* let the page handle vertical scroll */
 }
 .table-inner {
-  min-width: 900px;        /* ensures scroll when too narrow */
+  position: relative;
+  overflow: auto;
 }
-
-/* Sticky header relative to the viewport */
 .deck-header {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 10;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
 }
-.deck-row { padding: 10px 12px 8px; }
-.deck-personas .rail { padding: 6px 0 6px 16px; }  /* extra left padding */
+.deck-row { padding: 8px 12px; }
 
-/* Cards grid */
 .grid {
   display: grid;
   grid-auto-rows: 1fr;
   gap: 8px;
-  padding: 8px 8px 12px;  /* bottom padding small & fixed */
+  padding: 8px;
+  min-width: 900px;
 }
 .row { display: contents; }
-.card-cell { padding: 8px; background: transparent !important; }
 
-/* Card */
+.card-cell { padding: 8px; }
+
+/* --- Card styling --- */
 .card {
   padding: 14px 16px;
   border-radius: 12px;
@@ -101,11 +111,40 @@ body {
   box-shadow: none;
   color: var(--text);
 }
-.card h3 { margin: 0; font-size: 14px; font-weight: 700; }
+.card h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
 .kpi { color: var(--muted); font-size: 12px; }
 .meta { color: var(--muted); font-size: 12px; }
 
-/* Empty */
+/* Ensure a clear break after key intro fields */
+.card .meta.break { margin-bottom: 8px; display: block; }
+
+/* --- Expand/collapse (kept if you use details elsewhere) --- */
+details { margin-top: 4px; border: 0; padding: 0; background: transparent; }
+details summary { cursor: pointer; color: var(--text); background: transparent; }
+.card summary::-webkit-details-marker { display: none; }
+
+.summary-line {
+  list-style: none;
+  cursor: pointer;
+  width: 100%;
+  height: 18px;
+  position: relative;
+}
+.summary-line::after {
+  content: "▼";
+  font-size: 16px;
+  display: inline-block;
+  color: var(--muted);
+}
+details[open] > .summary-line::after {
+  content: "▲";
+}
+
+/* --- Empty placeholder --- */
 .empty {
   border: 1px dashed var(--border);
   border-radius: 12px;
@@ -115,10 +154,9 @@ body {
   justify-content: center;
   color: var(--muted);
   font-size: 12px;
-  background: transparent !important;
 }
 
-/* Chips */
+/* --- Chips --- */
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -134,15 +172,30 @@ body {
   color: var(--muted);
 }
 
-/* Spacing */
+/* --- Stack spacing inside cards --- */
 .card > * + * { margin-top: 8px; }
-.card .kpi { font-size: 13px; opacity: .8; }
-.card .meta { margin: 6px 0 0; line-height: 1.35; }
+
+/* KPI smaller + subtle */
+.card .kpi {
+  font-size: 13px;
+  opacity: .8;
+}
+
+/* Meta paragraphs */
+.card .meta {
+  margin: 6px 0 0;
+  line-height: 1.35;
+}
 .card .meta strong { font-weight: 600; }
-.card .list { margin: 6px 0 0 16px; padding: 0; }
+
+/* Lists */
+.card .list {
+  margin: 6px 0 0 16px;
+  padding: 0;
+}
 .card .list li { margin: 4px 0; }
 
-/* Force dark */
+/* --- Safety overrides (force dark, suppress light UA defaults) --- */
 .card, .card *, .card-cell, .grid, .grid-wrap,
 .card details, .card summary, .card .summary-line {
   background: transparent;
@@ -157,121 +210,3 @@ body {
   border-color: var(--border) !important;
   color: var(--muted) !important;
 }
-
-/* --- Stage Deck (bars + aligned rail) --- */
-.stage-deck { width: 100%; }
-.sd-grid {
-  display: grid;
-  grid-template-rows: 120px auto;
-  column-gap: 16px;
-  row-gap: 8px;
-  align-items: end;
-}
-.sd-bar {
-  justify-self: center;
-  width: 65%;
-  background: var(--accent);
-  opacity: 0.9;
-  border-radius: 0;
-  cursor: pointer;
-}
-.sd-track {
-  height: 2px;
-  align-self: center;
-  background: var(--border);
-}
-.sd-step {
-  background: transparent;
-  border: 0;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: 6px;
-  justify-self: center;
-}
-.sd-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--border);
-  box-shadow: 0 0 0 2px var(--panel) inset;
-}
-.sd-step.active .sd-dot { background: var(--accent); }
-.sd-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
-/* The scroller that BOTH header and cards live in */
-.grid-wrap {
-  position: relative;                 /* helps sticky layer above content */
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--panel) !important;/* unify bg (no zebra) */
-  overflow-x: auto;                   /* horizontal scroll here */
-  overflow-y: visible;                /* vertical scroll = the page */
-}
-
-/* Let the content decide width; gives proper horizontal scroll */
-.table-inner { 
-  min-width: 900px;
-}
-
-/* Sticky header relative to the viewport */
-.deck-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--panel) !important;
-  border-bottom: 1px solid var(--border);
-}
-
-/* Padding stays compact; your previous tweak for left padding kept */
-.deck-row { padding: 10px 12px 8px; }
-.deck-personas .rail { padding: 6px 0 6px 16px; }
-
-/* The grid area should have a solid background so the page gradient
-   doesn't show between rows (the “zebra” effect you saw). */
-.grid {
-  display: grid;
-  grid-auto-rows: 1fr;
-  gap: 8px;
-  padding: 8px 8px 12px;
-  background: var(--panel) !important;
-}
-
-/* Ensure row/cell placeholders don’t reintroduce stripes */
-.row, .card-cell, .empty { background: transparent !important; }
-
-/* 1) One scroller: header + grid live in the same wrapper */
-.grid-wrap {
-  position: relative;                 /* helps sticky layer above content */
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--panel) !important;/* unify background (no zebra) */
-  overflow-x: auto;                   /* horizontal scroll here */
-  overflow-y: visible;                /* vertical scroll = the page */
-}
-
-/* 2) Sticky header (sticks to viewport top) */
-.deck-header {
-  position: sticky !important;
-  top: 0;
-  z-index: 20;
-  background: var(--panel) !important;
-  border-bottom: 1px solid var(--border);
-}
-
-/* keep your existing padding tweaks */
-.deck-row { padding: 10px 12px 8px; }
-.deck-personas .rail { padding: 6px 0 6px 16px; }
-
-/* 3) Solid background for grid area to avoid the body gradient “stripes” */
-.grid {
-  display: grid;
-  grid-auto-rows: 1fr;
-  gap: 8px;
-  padding: 8px 8px 12px;
-  background: var(--panel) !important;
-}
-.row, .card-cell, .empty { background: transparent !important; }
-
-
