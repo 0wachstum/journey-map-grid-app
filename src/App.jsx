@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 
-// --- Build marker (change the string when you want to verify a new deploy) ---
-const BUILD_TAG = 'APP-verify-2025-10-09-16:12';
-console.log('Loaded build:', BUILD_TAG);
-
 // ===== CONFIG =====
 // Google Sheets “Publish to web” CSV (leave CSV_GID empty unless you target a specific tab)
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
@@ -13,7 +9,7 @@ const CSV_GID = ''
 // NOTE: You recently removed KPI from highlights. Keeping your last state here:
 const HIGHLIGHT_FIELDS = ['motivation','emotions','quotes']
 // Full view keeps KPI after Opportunities (per your last change)
-const FULL_FIELDS = ['goal','motivation','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore']
+const FULL_FIELDS = ['motivation','goal','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore']
 
 // ===== CSV parsing =====
 function stripBOM(text) {
@@ -253,10 +249,6 @@ export default function App() {
   if (!allStages.length || !allStakeholders.length) return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
 
   return (
-<div style={{fontSize:12, color:'var(--muted)', marginBottom:8}}>
-  Build: {BUILD_TAG}
-</div>
-    
     <div className="container">
       {/* Highlights / Full switch */}
       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
