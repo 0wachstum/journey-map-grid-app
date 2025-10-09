@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 
+// --- Build marker (optional; helps verify deploys) ---
+const BUILD_TAG = 'APP-2025-10-09T17:25';
+
 // ===== CONFIG =====
 // Google Sheets “Publish to web” CSV (leave CSV_GID empty unless you target a specific tab)
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
 const CSV_GID = ''
 
 // View logic
-// NOTE: You recently removed KPI from highlights. Keeping your last state here:
-const HIGHLIGHT_FIELDS = ['motivation','emotions','quotes']
-// Full view keeps KPI after Opportunities (per your last change)
+// Highlights: (KPI removed), per your last change
+const HIGHLIGHT_FIELDS = ['motivation','emotions','barriers','opportunities','quotes']
+// Full: KPI appears AFTER Opportunities; includes Touchpoints; Evidence omitted
 const FULL_FIELDS = ['motivation','goal','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore']
 
 // ===== CSV parsing =====
@@ -60,14 +63,14 @@ function parseCSV(text) {
       signals:       semi(get(cells,'Signals')),      // renders as “Survey Input”
       touchpoints:   semi(get(cells,'Touchpoints')),
 
-      kpi:           semi(get(cells,'KPI')),          // chips
+      kpi:           semi(get(cells,'KPI')),          // chips (single/multiple)
       emotions:      semi(get(cells,'Emotions')),
       quotes:        semi(get(cells,'Quotes')),
 
       // Evidence intentionally ignored (not rendered)
       satisfactionScore: (get(cells,'SatisfactionScore') || '').trim(),
 
-      // Optional ordering hints
+      // Optional ordering hints (ignored if absent)
       stageOrder:       Number(get(cells,'StageOrder') || Number.POSITIVE_INFINITY),
       stakeholderOrder: Number(get(cells,'StakeholderOrder') || Number.POSITIVE_INFINITY),
     }
@@ -174,7 +177,8 @@ export default function App() {
   const [selectedStakeholders, setSelectedStakeholders] = useState([])
 
   useEffect(() => {
-    (async () => {
+    console.log('Loaded build:', BUILD_TAG)
+    ;(async () => {
       try {
         const base = CSV_URL
         const gidPart = CSV_GID ? `${base.includes('?') ? '&' : '?'}single=true&gid=${CSV_GID}` : ''
@@ -248,130 +252,106 @@ export default function App() {
   if (!data.length) return <div style={{ padding: 16 }}>Loading…</div>
   if (!allStages.length || !allStakeholders.length) return <div style={{ padding: 16 }}>No stages/stakeholders found in the CSV.</div>
 
-  return return (
-  <div className="container">
-    {/* Build marker (optional) */}
-    {/* <div style={{fontSize:12, color:'var(--muted)', marginBottom:8}}>Build: APP-verify</div> */}
+  return (
+    <div className="container">
+      {/* Build tag */}
+      <div style={{fontSize:12, color:'var(--muted)', marginBottom:8}}>Build: {BUILD_TAG}</div>
 
-    {/* Highlights / Full switch */}
-    <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
-      <button
-        className={`btn ${viewMode === 'highlights' ? 'active' : ''}`}
-        aria-pressed={viewMode === 'highlights'}
-        onClick={() => setViewMode('highlights')}
-      >
-        Highlights
-      </button>
-      <button
-        className={`btn ${viewMode === 'full' ? 'active' : ''}`}
-        aria-pressed={viewMode === 'full'}
-        onClick={() => setViewMode('full')}
-      >
-        Full
-      </button>
-    </div>
+      {/* Highlights / Full switch */}
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
+        <button
+          className={`btn ${viewMode === 'highlights' ? 'active' : ''}`}
+          aria-pressed={viewMode === 'highlights'}
+          onClick={() => setViewMode('highlights')}
+        >
+          Highlights
+        </button>
+        <button
+          className={`btn ${viewMode === 'full' ? 'active' : ''}`}
+          aria-pressed={viewMode === 'full'}
+          onClick={() => setViewMode('full')}
+        >
+          Full
+        </button>
+      </div>
 
-    {/* Sticky header with inline bar chart + stage rail */}
-    <div className="grid-wrap">
-      <div className="table-inner">
-        <div className="deck-header">
-          <div className="deck-row deck-bars">
-            <SmallBarChart
-              stages={allStages}
-              counts={stageCounts}
-              selectedStages={selectedStages}
-              onToggle={(s) =>
-                setSelectedStages(curr =>
-                  curr.includes(s) ? curr.filter(x => x !== s) : [...curr, s]
-                )
-              }
-            />
-          </div>
-
-          <div className="deck-row deck-stages">
-            <div className="rail">
-              {allStages.map(s => (
-                <button
-                  key={s}
-                  className={`btn ${selectedStages.includes(s) ? 'active' : ''}`}
-                  aria-pressed={selectedStages.includes(s)}
-                  onClick={() =>
-                    setSelectedStages(curr =>
-                      curr.includes(s) ? curr.filter(x => x !== s) : [...curr, s]
-                    )
-                  }
-                >
-                  {s}
-                </button>
-              ))}
+      {/* Sticky header with inline bar chart + stage rail */}
+      <div className="grid-wrap">
+        <div className="table-inner">
+          <div className="deck-header">
+            <div className="deck-row deck-bars">
+              <SmallBarChart
+                stages={allStages}
+                counts={stageCounts}
+                selectedStages={selectedStages}
+                onToggle={(s) => toggle(setSelectedStages)(s)}
+              />
             </div>
-          </div>
 
-          <div className="deck-row deck-personas">
-            <div className="section-title">Stakeholders</div>
-            <div className="rail">
-              {allStakeholders.map(v => (
-                <button
-                  key={v}
-                  className={`btn ${selectedStakeholders.includes(v) ? 'active' : ''}`}
-                  aria-pressed={selectedStakeholders.includes(v)}
-                  onClick={() =>
-                    setSelectedStakeholders(curr =>
-                      curr.includes(v) ? curr.filter(x => x !== v) : [...curr, v]
-                    )
-                  }
-                >
-                  {v}
-                </button>
-              ))}
-              <div className="rail-actions">
-                <button className="btn ghost" onClick={() => setSelectedStakeholders(allStakeholders)}>All</button>
-                <button className="btn ghost" onClick={() => setSelectedStakeholders([])}>Clear</button>
+            <div className="deck-row deck-stages">
+              <StageRail
+                stages={allStages}
+                selectedStages={selectedStages}
+                onToggle={(s) => toggle(setSelectedStages)(s)}
+              />
+            </div>
+
+            <div className="deck-row deck-personas">
+              <div className="section-title">Stakeholders</div>
+              <div className="rail">
+                {allStakeholders.map(v => (
+                  <button
+                    key={v}
+                    className={`btn ${selectedStakeholders.includes(v) ? 'active' : ''}`}
+                    aria-pressed={selectedStakeholders.includes(v)}
+                    onClick={() => toggle(setSelectedStakeholders)(v)}
+                  >
+                    {v}
+                  </button>
+                ))}
+                <div className="rail-actions">
+                  <button className="btn ghost" onClick={()=>setSelectedStakeholders(allStakeholders)}>All</button>
+                  <button className="btn ghost" onClick={()=>setSelectedStakeholders([])}>Clear</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Cards */}
-        <div className="grid" style={gridStyle}>
-          {effectiveStages.map(stage => {
-            const rowMap = byStage.get(stage) || {}
-            return (
-              <div key={stage} className="row" style={{ display:'contents' }}>
-                {effectiveStakeholders.map(sh => {
-                  const row = rowMap[sh]
-                  return (
-                    <div key={`${stage}-${sh}`} className="card-cell">
-                      {row ? (
-                        <div className="card">
-                          <h3>{row.stakeholder} @ {row.stage}</h3>
-                          {viewMode === 'highlights' ? (
-                            <>
-                              {['motivation','emotions','barriers','opportunities','quotes'].map(key => (
-                                <div key={key}>{renderField(key, row)}</div>
-                              ))}
-                            </>
-                          ) : (
-                            <>
-                              {['motivation','goal','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore'].map(key => (
-                                <div key={key}>{renderField(key, row)}</div>
-                              ))}
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="empty">—</div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })}
+          {/* Cards */}
+          <div className="grid" style={gridStyle}>
+            {effectiveStages.map(stage => {
+              const rowMap = byStage.get(stage) || {}
+              return (
+                <div key={stage} className="row" style={{ display:'contents' }}>
+                  {effectiveStakeholders.map(sh => {
+                    const row = rowMap[sh]
+                    return (
+                      <div key={`${stage}-${sh}`} className="card-cell">
+                        {row ? (
+                          <div className="card">
+                            <h3>{row.stakeholder} @ {row.stage}</h3>
+                            {viewMode === 'highlights' ? (
+                              <>
+                                {HIGHLIGHT_FIELDS.map(key => <div key={key}>{renderField(key, row)}</div>)}
+                              </>
+                            ) : (
+                              <>
+                                {FULL_FIELDS.map(key => <div key={key}>{renderField(key, row)}</div>)}
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="empty">—</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-)
-
+  )
 }
