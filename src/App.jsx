@@ -129,6 +129,55 @@ function renderField(key, row) {
 }
 
 // ===== Main App =====
+// === Minimal bar chart (inline SVG, no deps) ===
+function SmallBarChart({ stages, counts, selectedStages, onToggle }) {
+  const H = 48; // chart height
+  const gap = 8; // px gap between bars
+  const max = Math.max(1, ...stages.map(s => counts[s] ?? 0));
+  return (
+    <div style={{ padding: '6px 4px' }}>
+      <svg width="100%" height={H} viewBox={`0 0 ${stages.length * 32} ${H}`} preserveAspectRatio="none" style={{ display:'block' }}>
+        {stages.map((s, i) => {
+          const val = counts[s] ?? 0;
+          const h = Math.max(2, Math.round((val / max) * (H - 6)));
+          const x = i * 32 + gap/2;
+          const y = H - h;
+          const active = selectedStages.includes(s);
+          return (
+            <g key={s} onClick={() => onToggle(s)} style={{ cursor:'pointer' }}>
+              {/* bar */}
+              <rect x={x} y={y} width={32 - gap} height={h}
+                    fill={active ? 'var(--accent)' : 'var(--border)'} />
+              {/* hover tooltip */}
+              <title>{`${s}: ${val}`}</title>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// === Simple stage rail (styled buttons) ===
+function StageRail({ stages, selectedStages, onToggle }) {
+  return (
+    <div className="rail">
+      {stages.map(s => (
+        <button
+          key={s}
+          className={`btn ${selectedStages.includes(s) ? 'active' : ''}`}
+          aria-pressed={selectedStages.includes(s)}
+          onClick={() => onToggle(s)}
+        >
+          {s}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
+
 export default function App() {
   const [viewMode, setViewMode] = useState('highlights') // 'highlights' | 'full'
   const [data, setData] = useState([])
