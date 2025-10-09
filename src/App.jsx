@@ -9,7 +9,7 @@ const CSV_GID = ''
 // NOTE: You recently removed KPI from highlights. Keeping your last state here:
 const HIGHLIGHT_FIELDS = ['motivation','emotions','quotes']
 // Full view keeps KPI after Opportunities (per your last change)
-const FULL_FIELDS = ['motivation','goal','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore']
+const FULL_FIELDS = ['goal','motivation','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore']
 
 // ===== CSV parsing =====
 function stripBOM(text) {
