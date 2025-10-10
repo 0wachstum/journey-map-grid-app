@@ -73,11 +73,16 @@ body {
 
 /* Sticky header relative to the viewport */
 .deck-header {
-  position: sticky;
+  /* Stick the header to the viewport top while allowing horizontal
+     scrolling of the inner content to remain unchanged. */
+  position: sticky !important;
   top: 0;
-  z-index: 20;
+  left: 0;
+  right: 0;
+  z-index: 60; /* higher so it stays above cards */
   background: var(--panel) !important;
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 6px rgba(2,6,23,0.35); /* subtle separation */
 }
 .deck-row { padding: 10px 12px 8px; }
 .deck-personas .rail { padding: 6px 0 6px 16px; }  /* extra left padding */
