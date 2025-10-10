@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+<<<<<<< HEAD
 import StageDeck from './StageDeck.jsx' // keep if you’re using the deck; remove if not
 
 // ===== CONFIG =====
@@ -15,13 +16,24 @@ const FULL_FIELDS = ['motivation','goal','support','touchpoints','emotions','bar
 const HIGHLIGHT_FIELDS = ['motivation','barriers','opportunities','quotes']
 const FULL_FIELDS = ['motivation','goal','support','barriers','opportunities','signals','kpi','emotions','quotes','evidence','satisfactionScore']
 >>>>>>> parent of 33fb695 (Update App.jsx)
+=======
+import StageDeck from './StageDeck.jsx'
 
-// ===== CSV parsing =====
-function stripBOM(text) {
-  return text && text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text
-}
+// Google Sheets CSV
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
+//const CSV_URL = '/api/csv'; // now served by Vercel from your OneDrive source
+const CSV_GID = '' // optional tab gid
+
+function stripBOM(text) { return text && text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text }
+>>>>>>> parent of a6859f0 (Revert "Update App.jsx")
+
+// --- CSV parsing (robust) ---
 function parseCSVRaw(text) {
-  const rows = []; let row = []; let cell = ''; let i = 0; let inQuotes = false
+  const rows = []
+  let row = []
+  let cell = ''
+  let i = 0
+  let inQuotes = false
   while (i < text.length) {
     const ch = text[i]
     if (inQuotes) {
@@ -34,7 +46,7 @@ function parseCSVRaw(text) {
     } else {
       if (ch === '"') { inQuotes = true; i++; continue }
       if (ch === ',') { row.push(cell); cell = ''; i++; continue }
-      if (ch === '\r') { const n = text[i+1]; row.push(cell); cell=''; rows.push(row); row=[]; i += (n === '\n') ? 2 : 1; continue }
+      if (ch === '\r') { const n = text[i + 1]; row.push(cell); cell=''; rows.push(row); row=[]; i += (n === '\n') ? 2 : 1; continue }
       if (ch === '\n') { row.push(cell); cell=''; rows.push(row); row=[]; i++; continue }
       cell += ch; i++
     }
@@ -45,14 +57,15 @@ function parseCSV(text) {
   const matrix = parseCSVRaw(text).filter(r => r.length && !(r.length === 1 && r[0] === ''))
   if (!matrix.length) return []
   const headers = matrix[0].map(h => (h ?? '').trim())
-  const lc = headers.map(h => h.toLowerCase())
-  const idx = (name) => lc.indexOf(String(name).toLowerCase())
-  const get = (cells, name) => { const i = idx(name); return i >= 0 ? (cells[i] ?? '') : '' }
+  const headersLc = headers.map(h => h.toLowerCase())
+  const idx = (name) => headersLc.indexOf(String(name).toLowerCase())
   const semi = (v) => (v ? String(v).split(';').map(s => s.trim()).filter(Boolean) : [])
 
   return matrix.slice(1).map(cells => {
     if (cells.length < headers.length) cells = cells.concat(Array(headers.length - cells.length).fill(''))
+    const get = (name) => { const i = idx(name); return i >= 0 ? (cells[i] ?? '') : '' }
     return {
+<<<<<<< HEAD
       stage:       get(cells,'Stage').trim(),
       stakeholder: get(cells,'Stakeholder').trim(),
 
@@ -73,11 +86,46 @@ function parseCSV(text) {
       // optional ordering hints (ignored if absent)
       stageOrder:       Number(get(cells,'StageOrder') || Number.POSITIVE_INFINITY),
       stakeholderOrder: Number(get(cells,'StakeholderOrder') || Number.POSITIVE_INFINITY),
+=======
+      stage:       get('Stage').trim(),
+      stakeholder: get('Stakeholder').trim(),
+      motivation:  get('Motivation').trim(),
+      goal:        get('Goal').trim(),
+      support:     get('Support').trim(),
+      plays:       semi(get('Plays')),
+      touchpoints: semi(get('Touchpoints')),
+      kpi:         get('KPI').trim(),
+      emotions:      semi(get('Emotions')),
+      quotes:        semi(get('Quotes')),
+      roles:         semi(get('Roles')),
+      influences:    semi(get('Influences')),
+      barriers:      semi(get('Barriers')),
+      evidence:      semi(get('Evidence')),
+      opportunities: semi(get('Opportunities')),
+      stageOrder:       Number(get('StageOrder') || Number.POSITIVE_INFINITY),
+      stakeholderOrder: Number(get('StakeholderOrder') || Number.POSITIVE_INFINITY),
+      stageGroup:       get('StageGroup').trim(),
+>>>>>>> parent of a6859f0 (Revert "Update App.jsx")
     }
   })
 }
 
-// ===== Render helpers =====
+// --- UI helpers ---
+const OPTIONAL_ORDER = ['goal','support','plays','emotions','quotes','roles','influences','barriers','evidence','opportunities']
+const FULL_ORDER = ['motivation','goal','support','plays','touchpoints','emotions','quotes','roles','influences','barriers','evidence','opportunities']
+
+function pickHighlightExtras(row, max = 3) {
+  if (!row) return []
+  const picks = []
+  for (const key of OPTIONAL_ORDER) {
+    const val = row[key]
+    const has = Array.isArray(val) ? val.length > 0 : (typeof val === 'string' ? val.trim().length > 0 : false)
+    if (has) picks.push(key)
+    if (picks.length >= max) break
+  }
+  return picks
+}
+
 const Section = ({ label, children }) => (<div className="meta"><strong>{label}:</strong>{children}</div>)
 const Chips = ({ items }) => (<div className="chips" style={{ marginTop: 6 }}>{items.map((t,i)=>(<span key={i} className="chip">{t}</span>))}</div>)
 const List  = ({ items, quote }) => (<ul className="list">{items.map((v,i)=>(<li key={i}>{quote ? <>&ldquo;{v}&rdquo;</> : v}</li>))}</ul>)
@@ -85,6 +133,7 @@ const List  = ({ items, quote }) => (<ul className="list">{items.map((v,i)=>(<li
 function renderField(key, row) {
   switch (key) {
     case 'motivation': return row.motivation ? <p className="meta"><strong>Motivation:</strong> {row.motivation}</p> : null
+<<<<<<< HEAD
     case 'goal':       return row.goal       ? <p className="meta"><strong>Goal:</strong> {row.goal}</p> : null
     case 'support':    return row.support    ? <p className="meta"><strong>Support:</strong> {row.support}</p> : null
 
@@ -106,59 +155,22 @@ function renderField(key, row) {
       return <div className="kpi">Satisfaction: {looks05 ? `${num} / 5` : v}</div>
     }
 
+=======
+    case 'goal': return row.goal ? <p className="meta"><strong>Goal:</strong> {row.goal}</p> : null
+    case 'support': return row.support ? <p className="meta"><strong>Support:</strong> {row.support}</p> : null
+    case 'plays': return row.plays?.length ? <Section label="Plays"><List items={row.plays} /></Section> : null
+    case 'touchpoints': return row.touchpoints?.length ? <Section label="Touchpoints"><Chips items={row.touchpoints} /></Section> : null
+    case 'emotions': return row.emotions?.length ? <Section label="Emotions"><Chips items={row.emotions} /></Section> : null
+    case 'quotes': return row.quotes?.length ? <Section label="Quotes"><List items={row.quotes} quote /></Section> : null
+    case 'roles': return row.roles?.length ? <Section label="Roles / Stakeholders"><Chips items={row.roles} /></Section> : null
+    case 'influences': return row.influences?.length ? <Section label="Influences"><List items={row.influences} /></Section> : null
+    case 'barriers': return row.barriers?.length ? <Section label="Barriers / Risks"><List items={row.barriers} /></Section> : null
+    case 'evidence': return row.evidence?.length ? <Section label="Evidence / Proof Needed"><List items={row.evidence} /></Section> : null
+    case 'opportunities': return row.opportunities?.length ? <Section label="Opportunities (How we can win)"><List items={row.opportunities} /></Section> : null
+>>>>>>> parent of a6859f0 (Revert "Update App.jsx")
     default: return null
   }
 }
-
-// ===== Main App =====
-// === Minimal bar chart (inline SVG, no deps) ===
-function SmallBarChart({ stages, counts, selectedStages, onToggle }) {
-  const H = 48; // chart height
-  const gap = 8; // px gap between bars
-  const max = Math.max(1, ...stages.map(s => counts[s] ?? 0));
-  return (
-    <div style={{ padding: '6px 4px' }}>
-      <svg width="100%" height={H} viewBox={`0 0 ${stages.length * 32} ${H}`} preserveAspectRatio="none" style={{ display:'block' }}>
-        {stages.map((s, i) => {
-          const val = counts[s] ?? 0;
-          const h = Math.max(2, Math.round((val / max) * (H - 6)));
-          const x = i * 32 + gap/2;
-          const y = H - h;
-          const active = selectedStages.includes(s);
-          return (
-            <g key={s} onClick={() => onToggle(s)} style={{ cursor:'pointer' }}>
-              {/* bar */}
-              <rect x={x} y={y} width={32 - gap} height={h}
-                    fill={active ? 'var(--accent)' : 'var(--border)'} />
-              {/* hover tooltip */}
-              <title>{`${s}: ${val}`}</title>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
-// === Simple stage rail (styled buttons) ===
-function StageRail({ stages, selectedStages, onToggle }) {
-  return (
-    <div className="rail">
-      {stages.map(s => (
-        <button
-          key={s}
-          className={`btn ${selectedStages.includes(s) ? 'active' : ''}`}
-          aria-pressed={selectedStages.includes(s)}
-          onClick={() => onToggle(s)}
-        >
-          {s}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-
 
 export default function App() {
   const [viewMode, setViewMode] = useState('highlights') // 'highlights' | 'full'
@@ -167,13 +179,14 @@ export default function App() {
   const [selectedStages, setSelectedStages] = useState([])
   const [selectedStakeholders, setSelectedStakeholders] = useState([])
 
+  // Load CSV
   useEffect(() => {
     (async () => {
       try {
         const base = CSV_URL
         const gidPart = CSV_GID ? `${base.includes('?') ? '&' : '?'}single=true&gid=${CSV_GID}` : ''
-        const bust = `${(base.includes('?') || gidPart) ? '&' : '?'}t=${Date.now()}`
-        const url = `${base}${gidPart}${bust}`
+        const bustPart = `${(base.includes('?') || gidPart) ? '&' : '?'}t=${Date.now()}`
+        const url = `${base}${gidPart}${bustPart}`
         const res = await fetch(url, { cache: 'no-store' })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         let txt = await res.text()
@@ -187,7 +200,7 @@ export default function App() {
     })()
   }, [])
 
-  // Stage/Stakeholder lists (respect optional ordering hints)
+  // Derive dynamic lists (respect ordering hints)
   const allStages = useMemo(() => {
     const seen = new Set(); const rows = [...data]
     rows.sort((a,b)=> (a.stageOrder - b.stageOrder) || 0)
@@ -195,6 +208,7 @@ export default function App() {
     for (const r of rows) { if (!r.stage) continue; if (!seen.has(r.stage)) { seen.add(r.stage); list.push(r.stage) } }
     return list
   }, [data])
+
   const allStakeholders = useMemo(() => {
     const seen = new Set(); const rows = [...data]
     rows.sort((a,b)=> (a.stakeholderOrder - b.stakeholderOrder) || 0)
@@ -208,9 +222,14 @@ export default function App() {
     return data.filter(d => selectedStages.includes(d.stage) && selectedStakeholders.includes(d.stakeholder))
   }, [data, selectedStages, selectedStakeholders])
 
-  // Prune empty rows/columns (always)
-  const activeStages = useMemo(() => selectedStages.filter(st => visible.some(d => d.stage === st)), [visible, selectedStages])
-  const activeStakeholders = useMemo(() => selectedStakeholders.filter(sh => visible.some(d => d.stakeholder === sh)), [visible, selectedStakeholders])
+  // Prune empty rows/columns ALWAYS
+  const activeStages = useMemo(() => {
+    return selectedStages.filter(st => visible.some(d => d.stage === st))
+  }, [visible, selectedStages])
+
+  const activeStakeholders = useMemo(() => {
+    return selectedStakeholders.filter(sh => visible.some(d => d.stakeholder === sh))
+  }, [visible, selectedStakeholders])
 
   const effectiveStages = activeStages
   const effectiveStakeholders = activeStakeholders
@@ -237,16 +256,23 @@ export default function App() {
 
   return (
     <div className="container">
-      {/* Highlights / Full switch */}
+      {/* View Mode switch */}
       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, gap:8 }}>
         <button className={`btn ${viewMode === 'highlights' ? 'active' : ''}`} aria-pressed={viewMode === 'highlights'} onClick={()=>setViewMode('highlights')}>Highlights</button>
         <button className={`btn ${viewMode === 'full' ? 'active' : ''}`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
       </div>
 
+<<<<<<< HEAD
       {/* Shared scroller for header + cards */}
       <div className="grid-wrap">
         <div className="table-inner">
           {/* Sticky header */}
+=======
+      {/* Single scroller: header + cards share the same horizontal scroll container */}
+      <div className="grid-wrap">
+        <div className="table-inner">
+          {/* Sticky header (sticks to viewport top while page scrolls) */}
+>>>>>>> parent of a6859f0 (Revert "Update App.jsx")
           <div className="deck-header">
             {/* (Optional) Stage deck: align with your bars/rail component */}
             <div className="deck-row deck-bars">
@@ -256,8 +282,11 @@ export default function App() {
                 onToggle={toggle(setSelectedStages)}
               />
             </div>
+<<<<<<< HEAD
 
             {/* Stakeholder rail */}
+=======
+>>>>>>> parent of a6859f0 (Revert "Update App.jsx")
             <div className="deck-row deck-personas">
               <div className="section-title">Stakeholders</div>
               <div className="rail">
@@ -287,19 +316,30 @@ export default function App() {
                 <div key={stage} className="row" style={{ display:'contents' }}>
                   {effectiveStakeholders.map(sh => {
                     const row = rowMap[sh]
+                    const picks = row ? pickHighlightExtras(row, 3) : []
                     return (
                       <div key={`${stage}-${sh}`} className="card-cell">
                         {row ? (
                           <div className="card">
                             <h3>{row.stakeholder} @ {row.stage}</h3>
+<<<<<<< HEAD
+=======
+                            {row.kpi && <div className="kpi">KPI: {row.kpi}</div>}
+>>>>>>> parent of a6859f0 (Revert "Update App.jsx")
 
                             {viewMode === 'highlights' ? (
                               <>
-                                {HIGHLIGHT_FIELDS.map(key => <div key={key}>{renderField(key, row)}</div>)}
+                                {renderField('motivation', row)}
+                                {renderField('touchpoints', row)}
+                                {OPTIONAL_ORDER
+                                  .filter(k => picks.includes(k))
+                                  .map(k => <div key={k}>{renderField(k, row)}</div>)}
                               </>
                             ) : (
                               <>
-                                {FULL_FIELDS.map(key => <div key={key}>{renderField(key, row)}</div>)}
+                                {FULL_ORDER.map(key => (
+                                  <div key={key}>{renderField(key, row)}</div>
+                                ))}
                               </>
                             )}
                           </div>
