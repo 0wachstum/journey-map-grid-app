@@ -34,7 +34,7 @@ function stripBOM(text) { return text && text.charCodeAt(0) === 0xFEFF ? text.sl
 =======
 // View logic
 // Highlights: KPI first (chips), then Motivation (break), Emotions (chips), Barriers, Opportunities, Quotes
-const HIGHLIGHT_FIELDS = ['motivation','emotions','quotes']
+const HIGHLIGHT_FIELDS = ['kpi','motivation','emotions','barriers','opportunities','quotes']
 // Full: everything (Evidence removed), with Touchpoints included and Signals renamed in render
 const FULL_FIELDS = ['motivation','goal','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore']
 >>>>>>> parent of 30d45a4 (Update App.jsx)
