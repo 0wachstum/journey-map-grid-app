@@ -1,20 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import StageDeck from './StageDeck.jsx' // keep if you’re using the deck; remove if not
+import StageDeck from './StageDeck.jsx' // keep/remove based on your setup
 
 // ===== CONFIG =====
+// Google Sheets “Publish to web” CSV (leave CSV_GID empty unless you target a specific tab)
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
-const CSV_GID = '' // optional: if you need a specific tab
+const CSV_GID = ''
 
 // View logic
-<<<<<<< HEAD
 // Highlights: KPI first (chips), then Motivation (break), Emotions (chips), Barriers, Opportunities, Quotes
 const HIGHLIGHT_FIELDS = ['motivation','emotions','quotes']
 // Full: everything (Evidence removed), with Touchpoints included and Signals renamed in render
 const FULL_FIELDS = ['motivation','goal','support','touchpoints','emotions','barriers','opportunities','kpi','quotes','signals','satisfactionScore']
-=======
-const HIGHLIGHT_FIELDS = ['motivation','barriers','opportunities','quotes']
-const FULL_FIELDS = ['motivation','goal','support','barriers','opportunities','signals','kpi','emotions','quotes','evidence','satisfactionScore']
->>>>>>> parent of 33fb695 (Update App.jsx)
 
 // ===== CSV parsing =====
 function stripBOM(text) {
@@ -62,15 +58,17 @@ function parseCSV(text) {
 
       barriers:      semi(get(cells,'Barriers')),
       opportunities: semi(get(cells,'Opportunities')),
-      signals:       semi(get(cells,'Signals')),
+      signals:       semi(get(cells,'Signals')),      // will render as “Survey Input”
+      touchpoints:   semi(get(cells,'Touchpoints')),  // NEW
 
-      kpi:         get(cells,'KPI').trim(),
-      emotions:    semi(get(cells,'Emotions')),
-      quotes:      semi(get(cells,'Quotes')),
-      evidence:    semi(get(cells,'Evidence')),
+      kpi:           semi(get(cells,'KPI')),          // chips (supports single/multiple)
+      emotions:      semi(get(cells,'Emotions')),
+      quotes:        semi(get(cells,'Quotes')),
 
-      satisfactionScore: (get(cells,'SatisfactionScore') || '').trim(), // keep as string; render smartly
-      // optional ordering hints (ignored if absent)
+      // Evidence intentionally ignored (removed from cards)
+      satisfactionScore: (get(cells,'SatisfactionScore') || '').trim(),
+
+      // Optional ordering hints (ignored if absent)
       stageOrder:       Number(get(cells,'StageOrder') || Number.POSITIVE_INFINITY),
       stakeholderOrder: Number(get(cells,'StakeholderOrder') || Number.POSITIVE_INFINITY),
     }
@@ -84,23 +82,43 @@ const List  = ({ items, quote }) => (<ul className="list">{items.map((v,i)=>(<li
 
 function renderField(key, row) {
   switch (key) {
-    case 'motivation': return row.motivation ? <p className="meta"><strong>Motivation:</strong> {row.motivation}</p> : null
-    case 'goal':       return row.goal       ? <p className="meta"><strong>Goal:</strong> {row.goal}</p> : null
-    case 'support':    return row.support    ? <p className="meta"><strong>Support:</strong> {row.support}</p> : null
+    // Leading narrative fields with a line break (extra spacing)
+    case 'motivation':
+      return row.motivation ? <p className="meta break"><strong>Motivation:</strong> {row.motivation}</p> : null
+    case 'goal':
+      return row.goal ? <p className="meta break"><strong>Goal:</strong> {row.goal}</p> : null
+    case 'support':
+      return row.support ? <p className="meta break"><strong>Support:</strong> {row.support}</p> : null
 
-    case 'barriers':      return row.barriers?.length      ? <Section label="Barriers"><List items={row.barriers} /></Section> : null
-    case 'opportunities': return row.opportunities?.length ? <Section label="Opportunities"><List items={row.opportunities} /></Section> : null
-    case 'signals':       return row.signals?.length       ? <Section label="Signals"><Chips items={row.signals} /></Section> : null
+    // New chips section after Support
+    case 'touchpoints':
+      return row.touchpoints?.length ? <Section label="Touchpoints"><Chips items={row.touchpoints} /></Section> : null
 
-    case 'kpi':        return row.kpi        ? <div className="kpi">KPI: {row.kpi}</div> : null
-    case 'emotions':   return row.emotions?.length ? <Section label="Emotions"><Chips items={row.emotions} /></Section> : null
-    case 'quotes':     return row.quotes?.length   ? <Section label="Quotes"><List items={row.quotes} quote /></Section> : null
-    case 'evidence':   return row.evidence?.length ? <Section label="Evidence"><List items={row.evidence} /></Section> : null
+    // KPI now chips and first in Highlights
+    case 'kpi':
+      return row.kpi?.length ? <Section label="KPI"><Chips items={row.kpi} /></Section> : null
+
+    // Emotions included in Highlights (chips)
+    case 'emotions':
+      return row.emotions?.length ? <Section label="Emotions"><Chips items={row.emotions} /></Section> : null
+
+    case 'barriers':
+      return row.barriers?.length ? <Section label="Barriers"><List items={row.barriers} /></Section> : null
+    case 'opportunities':
+      return row.opportunities?.length ? <Section label="Opportunities"><List items={row.opportunities} /></Section> : null
+    case 'quotes':
+      return row.quotes?.length ? <Section label="Quotes"><List items={row.quotes} quote /></Section> : null
+
+    // Signals → “Survey Input” (plain text)
+    case 'signals': {
+      const items = row.signals || []
+      if (!items.length) return null
+      return <p className="meta"><strong>Survey Input:</strong> {items.join(', ')}</p>
+    }
 
     case 'satisfactionScore': {
       const v = row.satisfactionScore
       if (!v) return null
-      // Render smartly: "4.3 / 5" if numeric 0–5, else as-is (e.g., "78%")
       const num = Number(v)
       const looks05 = Number.isFinite(num) && num >= 0 && num <= 5
       return <div className="kpi">Satisfaction: {looks05 ? `${num} / 5` : v}</div>
@@ -243,12 +261,10 @@ export default function App() {
         <button className={`btn ${viewMode === 'full' ? 'active' : ''}`} aria-pressed={viewMode === 'full'} onClick={()=>setViewMode('full')}>Full</button>
       </div>
 
-      {/* Shared scroller for header + cards */}
+      {/* Shared scroller for header + cards (if you use StageDeck and persona rail) */}
       <div className="grid-wrap">
         <div className="table-inner">
-          {/* Sticky header */}
           <div className="deck-header">
-            {/* (Optional) Stage deck: align with your bars/rail component */}
             <div className="deck-row deck-bars">
               <StageDeck
                 stages={allStages}
@@ -257,7 +273,6 @@ export default function App() {
               />
             </div>
 
-            {/* Stakeholder rail */}
             <div className="deck-row deck-personas">
               <div className="section-title">Stakeholders</div>
               <div className="rail">
@@ -292,7 +307,6 @@ export default function App() {
                         {row ? (
                           <div className="card">
                             <h3>{row.stakeholder} @ {row.stage}</h3>
-
                             {viewMode === 'highlights' ? (
                               <>
                                 {HIGHLIGHT_FIELDS.map(key => <div key={key}>{renderField(key, row)}</div>)}
