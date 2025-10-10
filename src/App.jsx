@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 <<<<<<< HEAD
 import StageDeck from './StageDeck.jsx' // keep if you’re using the deck; remove if not
 
+<<<<<<< HEAD
 // ===== CONFIG =====
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
 const CSV_GID = '' // optional: if you need a specific tab
@@ -23,6 +24,8 @@ import StageDeck from './StageDeck.jsx'
 import StageDeck from './StageDeck.jsx' // keep/remove based on your setup
 >>>>>>> parent of 30d45a4 (Update App.jsx)
 
+=======
+>>>>>>> parent of aa5242e (Update App.jsx)
 // ===== CONFIG =====
 // Google Sheets “Publish to web” CSV (leave CSV_GID empty unless you target a specific tab)
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2z8bKJ-yhJgr1yIWUdv4F1XQTntwc64mzz1eabNdApenFaBBmoBK9vpU_QarygI4lJan-pzK3XrE0/pub?output=csv'
