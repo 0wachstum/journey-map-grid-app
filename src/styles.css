@@ -224,4 +224,11 @@ body {
 .deck-personas .rail { padding: 6px 0 6px 16px; }
 .row, .card-cell, .empty { background: transparent !important; }
 
+/* Wrapper for header when rendered outside the horizontal scroller. */
+.deck-header-wrapper {
+  position: relative;
+  width: 100%;
+  background: transparent;
+}
+
 

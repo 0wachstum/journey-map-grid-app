@@ -364,8 +364,10 @@ export default function App() {
         </button>
       </div>
 
-      {/* Shared scroller for header + cards */}
-      <div className="grid-wrap">
+      {/* Header wrapper: rendered outside the horizontal scroller so it can
+          stick to the viewport independently. A nested .table-inner keeps
+          header content aligned to the grid's min-width. */}
+      <div className="deck-header-wrapper">
         <div className="table-inner">
           {/* Sticky header */}
           <div className="deck-header">
@@ -408,7 +410,12 @@ export default function App() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
+      {/* Shared scroller for cards (header removed from inside) */}
+      <div className="grid-wrap">
+        <div className="table-inner">
           {/* Cards */}
           <div className="grid" style={gridStyle}>
             {activeStages.map(stage => {
