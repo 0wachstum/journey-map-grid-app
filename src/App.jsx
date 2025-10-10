@@ -287,14 +287,20 @@ export default function App() {
     )
   }, [data, selectedStages, selectedStakeholders])
 
-  // Prune empty rows/columns
+  // Prune empty rows/columns BUT maintain original CSV order
   const activeStages = useMemo(() => {
-    return selectedStages.filter(st => visible.some(d => d.stage === st))
-  }, [visible, selectedStages])
+    return allStages.filter(st => 
+      selectedStages.includes(st) && 
+      visible.some(d => d.stage === st)
+    )
+  }, [visible, selectedStages, allStages])
 
   const activeStakeholders = useMemo(() => {
-    return selectedStakeholders.filter(sh => visible.some(d => d.stakeholder === sh))
-  }, [visible, selectedStakeholders])
+    return allStakeholders.filter(sh => 
+      selectedStakeholders.includes(sh) && 
+      visible.some(d => d.stakeholder === sh)
+    )
+  }, [visible, selectedStakeholders, allStakeholders])
 
   // stage → stakeholder → row
   const byStage = useMemo(() => {
