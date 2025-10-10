@@ -214,7 +214,13 @@ body {
   border-radius: 12px;
   background: var(--panel) !important;/* unify background (no zebra) */
   overflow-x: auto;                   /* horizontal scroll here */
-  overflow-y: visible;                /* vertical scroll = the page */
+  /* Allow vertical scrolling inside the scroller while keeping the
+     header sticky. The max height reserves space for the header and
+     top chrome; tune --header-reserve if needed. */
+  --header-reserve: 160px; /* adjust if your header is taller/shorter */
+  max-height: calc(100vh - var(--header-reserve));
+  overflow-y: auto;                    /* vertical scroll inside this box */
+  -webkit-overflow-scrolling: touch;   /* smooth scrolling on iOS */
 }
 
 /* Let the content decide width; gives proper horizontal scroll */
