@@ -322,7 +322,7 @@ export default function App() {
 //  } 
 */}
 
-// new layout
+{/*// new layout*/}
   const gridStyle = {
     gridTemplateColumns: activeStages.map(() => 'minmax(300px, 1fr)').join(' ')
   }
