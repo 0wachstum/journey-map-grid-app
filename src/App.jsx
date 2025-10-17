@@ -316,13 +316,13 @@ export default function App() {
   }, [visible, activeStages, activeStakeholders])
 
 {/*
-// old layout users horizontal
-// const gridStyle = {
-//    gridTemplateColumns: activeStakeholders.map(() => 'minmax(300px, 1fr)').join(' ')
-//  } 
+ old layout users horizontal
+ const gridStyle = {
+    gridTemplateColumns: activeStakeholders.map(() => 'minmax(300px, 1fr)').join(' ')
+  } 
 */}
 
-{/*// new layout*/}
+{/* new layout*/}
   const gridStyle = {
     gridTemplateColumns: activeStages.map(() => 'minmax(300px, 1fr)').join(' ')
   }
@@ -425,16 +425,18 @@ export default function App() {
       <div className="grid-wrap">
         <div className="table-inner">
 
-// old nesting           
- //         {/* Cards */}
- //         <div className="grid" style={gridStyle}>
- //           {activeStages.map(stage => {
- //             const rowMap = byStage.get(stage) || {}
- //             return (
- //               <div key={stage} className="row" style={{ display: 'contents' }}>
- //                 {activeStakeholders.map(sh => {
- //                 const row = rowMap[sh]
-
+          {/* Cards */}
+{/*
+          
+          <div className="grid" style={gridStyle}>
+            {activeStages.map(stage => {
+              const rowMap = byStage.get(stage) || {}
+              return (
+                <div key={stage} className="row" style={{ display: 'contents' }}>
+                  {activeStakeholders.map(sh => {
+                  const row = rowMap[sh]
+*/}
+            
 {/* new nesting */}
       {/* Cards */}
           <div className="grid" style={gridStyle}>
@@ -445,25 +447,25 @@ export default function App() {
                      const fieldsToShow = viewMode === 'highlights' ? HIGHLIGHT_FIELDS : FULL_FIELDS
                           
 {/*
-// old nesting
-//                       return (
-//                      <div key={`${stage}-${sh}`} className="card-cell">
-//                        {row ? (
-//                          <div className="card">
-//                            <h3>{row.stakeholder} @ {row.stage}</h3>
-//                            {fieldsToShow.map(key => (
-//                              <div key={key}>{renderField(key, row)}</div>
-//                            ))}
-//                          </div>
-//                        ) : (
-//                          <div className="empty">—</div>
-//                        )}
-//                      </div>
-//                    )
-//                  })}
-//                </div>
-//              )
-//            })}
+ old nesting
+                       return (
+                      <div key={`${stage}-${sh}`} className="card-cell">
+                        {row ? (
+                          <div className="card">
+                            <h3>{row.stakeholder} @ {row.stage}</h3>
+                            {fieldsToShow.map(key => (
+                              <div key={key}>{renderField(key, row)}</div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="empty">—</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
 */}                
 
 {/* new nesting */}
