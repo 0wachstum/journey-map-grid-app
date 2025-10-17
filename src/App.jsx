@@ -315,10 +315,12 @@ export default function App() {
     return m
   }, [visible, activeStages, activeStakeholders])
 
+{/*
 // old layout users horizontal
 // const gridStyle = {
 //    gridTemplateColumns: activeStakeholders.map(() => 'minmax(300px, 1fr)').join(' ')
-//  }
+//  } 
+*/}
 
 // new layout
   const gridStyle = {
@@ -433,7 +435,7 @@ export default function App() {
  //                 {activeStakeholders.map(sh => {
  //                 const row = rowMap[sh]
 
-// new nesting
+{/* new nesting */}
       {/* Cards */}
           <div className="grid" style={gridStyle}>
             {activeStakeholders.map(sh => (
@@ -442,6 +444,7 @@ export default function App() {
                   const row = (byStage.get(stage) || {})[sh]
                      const fieldsToShow = viewMode === 'highlights' ? HIGHLIGHT_FIELDS : FULL_FIELDS
                           
+{/*
 // old nesting
 //                       return (
 //                      <div key={`${stage}-${sh}`} className="card-cell">
@@ -461,8 +464,9 @@ export default function App() {
 //                </div>
 //              )
 //            })}
+*/}                
 
-// new nesting
+{/* new nesting */}
                   return (
                     <div key={`${sh}-${stage}`} className="card-cell">
                       {row ? (
